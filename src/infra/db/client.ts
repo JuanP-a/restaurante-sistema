@@ -1,15 +1,22 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
-import { getEnv } from "./env";
-import * as schema from "./schema";
+import { getEnv } from "@/env";
+import * as schema from "@/schema";
 
-let pool: Pool | null = null;
+type Db = ReturnType<typeof createDb>;
+const g = globalThis as unknown as { __dbPool?: Pool };
+let db: Db | undefined;
 
-export function getDb() {
-  if (pool) return drizzle(pool, { schema });
+function createDb() {
   const env = getEnv();
-  pool = new Pool({ connectionString: env.DATABASE_URL, max: 10 });
-  return drizzle(pool, { schema });
+  if (!g.__dbPool) g.__dbPool = new Pool({ connectionString: env.DATABASE_URL, // pool size: fits within Neon free-tier connection limit
+    max: 10 });
+  return drizzle(g.__dbPool, { schema });
 }
 
-export type Db = ReturnType<typeof getDb>;
+export function getDb(): Db {
+  if (!db) db = createDb();
+  return db;
+}
+
+export type { Db };
