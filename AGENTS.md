@@ -8,7 +8,7 @@ Sistema web (PWA) en la nube para gestionar pedidos de un restaurante de comida 
 
 ## Stack (decidido, no cambiar sin discutir)
 
-- **Next.js 15** (App Router, TypeScript estricto)
+- **Next.js 16** (App Router, TypeScript estricto)
 - **Drizzle ORM** + **Postgres** (Neon serverless)
 - **Tailwind** + **shadcn/ui**
 - **360dialog** como BSP de WhatsApp
