@@ -97,7 +97,8 @@ CREATE TABLE "orders" (
 CREATE TABLE "product_ingredients" (
 	"product_id" uuid NOT NULL,
 	"ingredient_id" uuid NOT NULL,
-	"default_included" boolean DEFAULT true NOT NULL
+	"default_included" boolean DEFAULT true NOT NULL,
+	CONSTRAINT "product_ingredients_product_id_ingredient_id_pk" PRIMARY KEY("product_id","ingredient_id")
 );
 --> statement-breakpoint
 CREATE TABLE "products" (

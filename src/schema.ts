@@ -1,7 +1,7 @@
 import {
-  pgTable, uuid, text, integer, boolean, decimal, jsonb, timestamp, pgEnum, index,
+  pgTable, uuid, text, integer, boolean, decimal, jsonb, timestamp, pgEnum, index, primaryKey,
 } from "drizzle-orm/pg-core";
-import { relations, sql } from "drizzle-orm";
+import { relations } from "drizzle-orm";
 
 export const orderStatusEnum = pgEnum("order_status", ["received", "delivered", "cancelled"]);
 export const serviceTypeEnum = pgEnum("service_type", ["local", "delivery"]);
@@ -45,7 +45,9 @@ export const productIngredients = pgTable("product_ingredients", {
   productId: uuid("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
   ingredientId: uuid("ingredient_id").notNull().references(() => ingredients.id),
   defaultIncluded: boolean("default_included").notNull().default(true),
-}, (t) => ({ pk: sql`PRIMARY KEY (${t.productId}, ${t.ingredientId})` }));
+}, (t) => ({
+  pk: primaryKey({ columns: [t.productId, t.ingredientId] }),
+}));
 
 export const deliveryZones = pgTable("delivery_zones", {
   id: uuid("id").primaryKey().defaultRandom(),
