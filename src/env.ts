@@ -5,7 +5,7 @@ const envSchema = z.object({
   ADMIN_PASSWORD_HASH: z.string().regex(/^\$2[aby]\$10\$/, "debe ser hash bcrypt"),
   SESSION_SECRET: z.string().min(32, "mínimo 32 caracteres"),
   WHATSAPP_BSP_API_KEY: z.string().min(1).optional(),
-  WHATSAPP_BSP_URL: z.string().url().default("https://waba.360dialog.io/v1"),
+  WHATSAPP_BSP_URL: z.string().url().default("https://waba-v2.360dialog.io"),
   WHATSAPP_VERIFY_TOKEN: z.string().min(1).optional(),
   BUSINESS_NAME: z.string().default("Mi Restaurante"),
   BUSINESS_ADDRESS: z.string().default(""),
