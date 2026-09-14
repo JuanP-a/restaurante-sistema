@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sistema de pedidos del restaurante
 
-## Getting Started
+App web (PWA) para gestionar pedidos de un restaurante de comida rápida. Los clientes piden por WhatsApp; el operador toma pedidos y cocina imprime comandas en térmica 80 mm.
 
-First, run the development server:
+Para el diseño completo, ver [`docs/superpowers/specs/`](docs/superpowers/specs/). Las convenciones de trabajo viven en [`AGENTS.md`](AGENTS.md).
+
+## Requisitos
+
+- Node.js 20+
+- [pnpm](https://pnpm.io) 10+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) corriendo
+
+## Setup local
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+docker compose up -d              # Postgres 16 en localhost:5432
+pnpm install                      # dependencias
+cp .env.example .env.local        # plantilla lista para dev
+# editar .env.local: ADMIN_PASSWORD_HASH, SESSION_SECRET, etc.
+pnpm drizzle:migrate              # aplica migraciones a la DB local
+pnpm dev                          # Next.js en http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Para generar los valores de `ADMIN_PASSWORD_HASH` y `SESSION_SECRET` revisa `src/infra/auth/` (Phase 3 del plan).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Comandos
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Comando | Para qué |
+|---------|----------|
+| `pnpm dev` | Servidor de desarrollo con HMR |
+| `pnpm build` | Build de producción |
+| `pnpm test` | Corre todos los tests una vez |
+| `pnpm test:watch` | Tests en watch mode |
+| `pnpm typecheck` | `tsc --noEmit` |
+| `pnpm drizzle:generate` | Genera migración SQL desde `src/schema.ts` |
+| `pnpm drizzle:migrate` | Aplica migraciones pendientes a la DB |
 
-## Learn More
+## Estructura
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `docs/superpowers/specs/` — diseño y alcance aprobado
+- `docs/superpowers/plans/` — plan de implementación por fases
+- `docs/decisions/` — ADRs (decisiones con trade-offs)
+- `src/app/` — Next.js App Router (rutas, API, impresión)
+- `src/core/` — lógica de negocio pura (pricing, state machines, validaciones)
+- `src/infra/` — adaptadores de I/O (DB, WhatsApp, printer, auth)
+- `drizzle/` — migraciones SQL generadas
