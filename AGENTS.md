@@ -8,8 +8,8 @@ Sistema web (PWA) en la nube para gestionar pedidos de un restaurante de comida 
 
 ## Stack (decidido, no cambiar sin discutir)
 
-- **Next.js 15** (App Router, TypeScript estricto)
-- **Drizzle ORM** + **Postgres** (Neon serverless)
+- **Next.js 16** (App Router, TypeScript estricto)
+- **Drizzle ORM** + **Postgres** (Neon/Render/Railway en prod, Docker local en dev — ver [`docs/decisions/0001-local-postgres-docker.md`](docs/decisions/0001-local-postgres-docker.md))
 - **Tailwind** + **shadcn/ui**
 - **360dialog** como BSP de WhatsApp
 - **Server-Sent Events** para el dashboard en tiempo real
@@ -64,7 +64,45 @@ Sistema web (PWA) en la nube para gestionar pedidos de un restaurante de comida 
 - **Migraciones con drizzle-kit.** Nunca editar la DB a mano, siempre via migración versionada.
 - **Variables de entorno validadas con Zod al inicio.** Un solo `env.ts` parsea y exporta `env.DATABASE_URL`, etc., con tipos correctos. Si falta una, el server no arranca.
 
-## Comandos esperados (cuando se cree el proyecto)
+## Setup local
+
+```bash
+docker compose up -d              # arranca Postgres 16 en localhost:5432
+pnpm install                      # dependencias
+cp .env.example .env.local        # plantilla de variables de entorno
+# editar .env.local con tus valores reales
+pnpm drizzle:migrate              # aplica migraciones a la DB local
+pnpm dev                          # arranca Next.js en :3000
+```
+
+> Requiere Docker Desktop corriendo. Sin Docker activo, `pnpm drizzle:migrate` y los tests de integración fallarán con error de conexión.
+
+### Mantenimiento: shadow files de macOS
+
+El proyecto vive en un volumen externo (`/Volumes/M2 Mac/`) que no soporta atributos extendidos de APFS de forma nativa. macOS compensa creando archivos `._*` (AppleDouble) junto a cada archivo real — ensucian el IDE y pueden romper herramientas que asumen UTF-8 limpio (vitest fallaba con `PARSE_ERROR` hasta que los excluimos del glob de tests).
+
+Gítense a `._*` en `.gitignore` (ya está), pero conviene correr de vez en cuando:
+
+```bash
+dot_clean -m .                  # fusiona metadata al archivo padre y borra los ._*
+find . -name '._*' -delete      # limpia remanentes en node_modules/.next
+```
+
+Si los IDE siguen mostrando `._*` después de esto, reiniciarlo suele forzar el re-escaneo del filesystem.
+
+### Gotcha: variables en `.env*` con Next.js (dotenv-expand)
+
+Next.js expande `$VAR` en valores de `.env*` vía dotenv-expand. Si un valor contiene `$`, Next.js lo trata como referencia a variable y trunca silenciosamente (las vars no definidas se reemplazan por string vacío). **Bug clásico con hashes bcrypt**: `$2b$10$...` se trunca a `b$...`.
+
+**Fix**: escapar cada `$` como `\$` y envolver el valor en comillas dobles. Ejemplo en `.env.example`:
+
+```bash
+ADMIN_PASSWORD_HASH="\$2b\$10\$YoEEXhwQhn5gKntCyJDQZ.aNl60oRDzKiRtoLGM6JUkuPXKrUCSSG"
+```
+
+Si el dev login falla con "Contraseña incorrecta" pero tu password es la correcta, este es el primer lugar a revisar. Diagnóstico rápido: en `src/env.ts` agregar un `console.log` temporal de `source.ADMIN_PASSWORD_HASH` — si el largo no es 60 chars, dotenv-expand está mutilando el valor.
+
+## Comandos esperados
 
 - `pnpm dev` — dev server
 - `pnpm build` — build de producción
@@ -81,7 +119,7 @@ Sistema web (PWA) en la nube para gestionar pedidos de un restaurante de comida 
 ## Variables de entorno requeridas (referencia)
 
 ```
-DATABASE_URL=                      # Postgres connection string (Neon)
+DATABASE_URL=                      # Postgres connection string. Dev: postgresql://postgres:postgres@localhost:5432/restaurante
 ADMIN_PASSWORD_HASH=               # bcrypt hash de la contraseña del local
 SESSION_SECRET=                    # random 32+ bytes
 WHATSAPP_BSP_API_KEY=              # 360dialog API key
@@ -103,9 +141,22 @@ DEFAULT_PREP_TIME_MINUTES=25       # tiempo estimado que se muestra al cliente
 
 ## Estado actual
 
-- ✅ Spec aprobado por el usuario.
-- ⏳ Pendiente: plan de implementación detallado (siguiente paso).
-- ⏳ Pendiente: setup del proyecto Next.js.
-- ⏳ Pendiente: git init + .gitignore apropiado.
+- ✅ Spec aprobado y versionado en [`docs/superpowers/specs/`](docs/superpowers/specs/).
+- ✅ Plan de implementación en [`docs/superpowers/plans/`](docs/superpowers/plans/) — 9 fases, 43 tasks.
+- ✅ **Phase 0** (Foundation): Next.js 16 + TS strict + Vitest + Zod env.
+- ✅ **Phase 1** (DB schema + Task 1.3): Drizzle ORM, schema completo, `docker-compose.yml` para Postgres local, migración inicial aplicada.
+- ✅ **Phase 2** (core puro con TDD): 41 tests verde, sin I/O. Cubre cálculo de precios, state machine de pedido (received/delivered/cancelled), validación de pedido nuevo, validación de rango de costo de envío (10–30 MXN), y state machine del bot de WhatsApp (9 estados).
+- ✅ **Phase 3** (Auth): bcrypt verifyPassword, HMAC session tokens, login API, middleware protegiendo `/admin` y rutas API, página `/login` funcional. 14 tests verde (3 password + 9 session + 2 env nuevos).
+- ⏳ **Phases 4–9** (23 tasks restantes): menu CRUD, captura de pedido, impresión 80mm, zonas de delivery, bot WhatsApp, polish, deploy.
 
-Cuando se levante el proyecto, mantener este archivo sincronizado con la realidad.
+### Infraestructura (fuera del spec, parte del repo)
+
+- ✅ CI en GitHub Actions: `pnpm build` (genera tipos de Next) + `pnpm test` + `pnpm audit --audit-level=high`.
+- ✅ Branch protection en `main`: requiere check `verify`, linear history, no force-push.
+- ✅ Dependabot security updates habilitado (PRs automáticos para CVEs).
+- ✅ LICENSE (All rights reserved) y SECURITY.md (disclosure a `juan12fc@gmail.com`).
+- ✅ Secret scanning + push protection activos en GitHub.
+
+Branch de trabajo: `feature/implementacion-mvp`. Repo: https://github.com/JuanP-a/restaurante-sistema. PRs contra `main` deben pasar el check `verify` antes de mergear.
+
+Cuando se avance, mantener este archivo sincronizado con la realidad.

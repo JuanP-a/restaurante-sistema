@@ -716,8 +716,11 @@ git commit -m "feat(core): order total calculation with extras and delivery"
 ## Task 2.2: Order state machine
 
 **Files:**
+- Create: `src/core/result.ts` (shared `Result<T, E>` type)
 - Create: `src/core/order/state-machine.ts`
 - Test: `src/core/order/state-machine.test.ts`
+
+> **Note:** El plan original usaba `throw` para errores de transición. Se reemplaza por `Result<T, E>` para mantener consistencia con la regla no negociable de `AGENTS.md` ("Errores explícitos con Result/Either en el core"). Las Tasks 2.3 y 2.4 ya seguían este patrón.
 
 - [ ] **Step 1: Write failing tests**
 
@@ -743,9 +746,15 @@ describe("order state machine", () => {
     expect(canTransition("cancelled", "received")).toBe(false);
     expect(canTransition("cancelled", "delivered")).toBe(false);
   });
-  it("nextState throws on invalid", () => {
-    expect(nextState("received", "delivered")).toBe("delivered");
-    expect(() => nextState("delivered", "received")).toThrow();
+  it("nextState returns ok on valid transition", () => {
+    const r = nextState("received", "delivered");
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.value).toBe("delivered");
+  });
+  it("nextState returns err on invalid transition", () => {
+    const r = nextState("delivered", "received");
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error.kind).toBe("invalid-transition");
   });
 });
 
@@ -757,8 +766,17 @@ export type _Status = OrderStatus;
 - [ ] **Step 3: Implement**
 
 ```ts
+// src/core/result.ts
+export type Result<T, E> = { ok: true; value: T } | { ok: false; error: E };
+
 // src/core/order/state-machine.ts
 export type OrderStatus = "received" | "delivered" | "cancelled";
+
+export type InvalidTransitionError = {
+  kind: "invalid-transition";
+  from: OrderStatus;
+  to: OrderStatus;
+};
 
 const TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   received: ["delivered", "cancelled"],
@@ -770,11 +788,14 @@ export function canTransition(from: OrderStatus, to: OrderStatus): boolean {
   return TRANSITIONS[from].includes(to);
 }
 
-export function nextState(from: OrderStatus, to: OrderStatus): OrderStatus {
+export function nextState(
+  from: OrderStatus,
+  to: OrderStatus,
+): Result<OrderStatus, InvalidTransitionError> {
   if (!canTransition(from, to)) {
-    throw new Error(`Transición inválida: ${from} -> ${to}`);
+    return { ok: false, error: { kind: "invalid-transition", from, to } };
   }
-  return to;
+  return { ok: true, value: to };
 }
 ```
 
@@ -784,7 +805,7 @@ export function nextState(from: OrderStatus, to: OrderStatus): OrderStatus {
 
 ```bash
 git add .
-git commit -m "feat(core): order state machine"
+git commit -m "feat(core): order state machine with Result"
 ```
 
 ---
