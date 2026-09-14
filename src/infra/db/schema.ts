@@ -21,6 +21,9 @@ export const categories = pgTable("categories", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export type Category = typeof categories.$inferSelect;
+export type CategoryNew = typeof categories.$inferInsert;
+
 export const products = pgTable("products", {
   id: uuid("id").primaryKey().defaultRandom(),
   categoryId: uuid("category_id").notNull().references(() => categories.id),
@@ -32,6 +35,9 @@ export const products = pgTable("products", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (t) => ({ categoryIdx: index("products_category_idx").on(t.categoryId) }));
+
+export type Product = typeof products.$inferSelect;
+export type ProductNew = typeof products.$inferInsert;
 
 export const ingredients = pgTable("ingredients", {
   id: uuid("id").primaryKey().defaultRandom(),

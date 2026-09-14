@@ -19,7 +19,7 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Build (generates Next.js types + compiles)
         run: pnpm build
-      - name: Test
-        run: pnpm test
+      - name: Test (unit only — integration tests need local Postgres)
+        run: pnpm test:unit
       - name: Audit
         run: pnpm audit --audit-level=high
