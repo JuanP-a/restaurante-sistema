@@ -90,6 +90,18 @@ find . -name '._*' -delete      # limpia remanentes en node_modules/.next
 
 Si los IDE siguen mostrando `._*` después de esto, reiniciarlo suele forzar el re-escaneo del filesystem.
 
+### Gotcha: variables en `.env*` con Next.js (dotenv-expand)
+
+Next.js expande `$VAR` en valores de `.env*` vía dotenv-expand. Si un valor contiene `$`, Next.js lo trata como referencia a variable y trunca silenciosamente (las vars no definidas se reemplazan por string vacío). **Bug clásico con hashes bcrypt**: `$2b$10$...` se trunca a `b$...`.
+
+**Fix**: escapar cada `$` como `\$` y envolver el valor en comillas dobles. Ejemplo en `.env.example`:
+
+```bash
+ADMIN_PASSWORD_HASH="\$2b\$10\$YoEEXhwQhn5gKntCyJDQZ.aNl60oRDzKiRtoLGM6JUkuPXKrUCSSG"
+```
+
+Si el dev login falla con "Contraseña incorrecta" pero tu password es la correcta, este es el primer lugar a revisar. Diagnóstico rápido: en `src/env.ts` agregar un `console.log` temporal de `source.ADMIN_PASSWORD_HASH` — si el largo no es 60 chars, dotenv-expand está mutilando el valor.
+
 ## Comandos esperados
 
 - `pnpm dev` — dev server
@@ -134,7 +146,8 @@ DEFAULT_PREP_TIME_MINUTES=25       # tiempo estimado que se muestra al cliente
 - ✅ **Phase 0** (Foundation): Next.js 16 + TS strict + Vitest + Zod env.
 - ✅ **Phase 1** (DB schema + Task 1.3): Drizzle ORM, schema completo, `docker-compose.yml` para Postgres local, migración inicial aplicada.
 - ✅ **Phase 2** (core puro con TDD): 41 tests verde, sin I/O. Cubre cálculo de precios, state machine de pedido (received/delivered/cancelled), validación de pedido nuevo, validación de rango de costo de envío (10–30 MXN), y state machine del bot de WhatsApp (9 estados).
-- ⏳ **Phases 3–9** (28 tasks restantes): auth (login con bcrypt + sesión), menu CRUD, captura de pedido, impresión 80mm, zonas de delivery, bot WhatsApp, polish, deploy.
+- ✅ **Phase 3** (Auth): bcrypt verifyPassword, HMAC session tokens, login API, middleware protegiendo `/admin` y rutas API, página `/login` funcional. 14 tests verde (3 password + 9 session + 2 env nuevos).
+- ⏳ **Phases 4–9** (23 tasks restantes): menu CRUD, captura de pedido, impresión 80mm, zonas de delivery, bot WhatsApp, polish, deploy.
 
 ### Infraestructura (fuera del spec, parte del repo)
 
