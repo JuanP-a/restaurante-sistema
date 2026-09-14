@@ -10,7 +10,7 @@ export default defineConfig({
       "tests/unit/**/*.test.ts",
       "tests/integration/**/*.test.ts",
     ],
-    exclude: ["node_modules", ".next", "tests/e2e/**"],
+    exclude: ["node_modules", ".next", "tests/e2e/**", "**/._*"],
     setupFiles: ["./vitest.setup.ts"],
   },
   resolve: { alias: { "@": path.resolve(__dirname, "./src") } },
