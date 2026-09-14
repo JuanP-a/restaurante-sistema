@@ -48,4 +48,5 @@ export const config = {
     "/api/delivery-zones/:path*",
     "/api/events",
   ],
+  runtime: "nodejs",
 };
