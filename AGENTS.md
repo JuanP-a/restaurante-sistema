@@ -133,8 +133,8 @@ DEFAULT_PREP_TIME_MINUTES=25       # tiempo estimado que se muestra al cliente
 - ✅ Plan de implementación en [`docs/superpowers/plans/`](docs/superpowers/plans/) — 9 fases, 43 tasks.
 - ✅ **Phase 0** (Foundation): Next.js 16 + TS strict + Vitest + Zod env.
 - ✅ **Phase 1** (DB schema + Task 1.3): Drizzle ORM, schema completo, `docker-compose.yml` para Postgres local, migración inicial aplicada.
-- 🟡 **Phase 2** (core puro con TDD): Task 2.1 (cálculo de precios) lista. Pendientes: 2.2 (state machine pedido), 2.3 (validación pedido), 2.4 (validación delivery cost), 2.5 (state machine bot WhatsApp).
-- ⏳ **Phases 3–9** (32 tasks restantes): auth, menu CRUD, captura de pedido, impresión 80mm, zonas de delivery, bot WhatsApp, polish, deploy.
+- ✅ **Phase 2** (core puro con TDD): 41 tests verde, sin I/O. Cubre cálculo de precios, state machine de pedido (received/delivered/cancelled), validación de pedido nuevo, validación de rango de costo de envío (10–30 MXN), y state machine del bot de WhatsApp (9 estados).
+- ⏳ **Phases 3–9** (28 tasks restantes): auth (login con bcrypt + sesión), menu CRUD, captura de pedido, impresión 80mm, zonas de delivery, bot WhatsApp, polish, deploy.
 
 ### Infraestructura (fuera del spec, parte del repo)
 
