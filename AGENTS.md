@@ -77,6 +77,19 @@ pnpm dev                          # arranca Next.js en :3000
 
 > Requiere Docker Desktop corriendo. Sin Docker activo, `pnpm drizzle:migrate` y los tests de integración fallarán con error de conexión.
 
+### Mantenimiento: shadow files de macOS
+
+El proyecto vive en un volumen externo (`/Volumes/M2 Mac/`) que no soporta atributos extendidos de APFS de forma nativa. macOS compensa creando archivos `._*` (AppleDouble) junto a cada archivo real — ensucian el IDE y pueden romper herramientas que asumen UTF-8 limpio (vitest fallaba con `PARSE_ERROR` hasta que los excluimos del glob de tests).
+
+Gítense a `._*` en `.gitignore` (ya está), pero conviene correr de vez en cuando:
+
+```bash
+dot_clean -m .                  # fusiona metadata al archivo padre y borra los ._*
+find . -name '._*' -delete      # limpia remanentes en node_modules/.next
+```
+
+Si los IDE siguen mostrando `._*` después de esto, reiniciarlo suele forzar el re-escaneo del filesystem.
+
 ## Comandos esperados
 
 - `pnpm dev` — dev server
