@@ -147,7 +147,16 @@ DEFAULT_PREP_TIME_MINUTES=25       # tiempo estimado que se muestra al cliente
 - ✅ **Phase 1** (DB schema + Task 1.3): Drizzle ORM, schema completo, `docker-compose.yml` para Postgres local, migración inicial aplicada.
 - ✅ **Phase 2** (core puro con TDD): 41 tests verde, sin I/O. Cubre cálculo de precios, state machine de pedido (received/delivered/cancelled), validación de pedido nuevo, validación de rango de costo de envío (10–30 MXN), y state machine del bot de WhatsApp (9 estados).
 - ✅ **Phase 3** (Auth): bcrypt verifyPassword, HMAC session tokens, login API, middleware protegiendo `/admin` y rutas API, página `/login` funcional. 14 tests verde (3 password + 9 session + 2 env nuevos).
-- ⏳ **Phases 4–9** (23 tasks restantes): menu CRUD, captura de pedido, impresión 80mm, zonas de delivery, bot WhatsApp, polish, deploy.
+- ✅ **Phase 4** (Menu CRUD): repo Drizzle para categorías/productos + `/api/menu/{categories,products}` CRUD + páginas admin (`/admin/menu`, `/admin/menu/categories`, `/admin/menu/products/[id]`) protegidas por middleware. 27 tests nuevos (11 DB + 16 API). PR #2 squash-merged.
+- ⏳ **Phases 5–9** (18 tasks restantes): captura de pedido, impresión 80mm, zonas de delivery, bot WhatsApp, polish, deploy.
+
+### Convenciones de testing (post-Phase 4)
+
+- **`pnpm test`** corre todo (local dev con Docker): unit + integration.
+- **`pnpm test:unit`** corre solo unit (lo que usa CI). Excluye `tests/integration/**`.
+- **`pnpm test:integration`** corre solo integration; requiere Postgres vía `docker compose up -d` y `.env.local` con `DATABASE_URL`/`ADMIN_PASSWORD_HASH`/`SESSION_SECRET`.
+- Integration tests comparten DB; vitest corre con `--no-file-parallelism` para evitar carreras en unique-constraint columns.
+- CI (`verify`) solo corre unit por ahora; integration en CI queda pendiente (service container + provisioning de env vars).
 
 ### Infraestructura (fuera del spec, parte del repo)
 
@@ -157,6 +166,6 @@ DEFAULT_PREP_TIME_MINUTES=25       # tiempo estimado que se muestra al cliente
 - ✅ LICENSE (All rights reserved) y SECURITY.md (disclosure a `juan12fc@gmail.com`).
 - ✅ Secret scanning + push protection activos en GitHub.
 
-Branch de trabajo: `feature/implementacion-mvp`. Repo: https://github.com/JuanP-a/restaurante-sistema. PRs contra `main` deben pasar el check `verify` antes de mergear.
+Branch de trabajo: `feature/phase-N-{name}`. Repo: https://github.com/JuanP-a/restaurante-sistema. PRs contra `main` deben pasar el check `verify` antes de mergear. Squash por fase.
 
 Cuando se avance, mantener este archivo sincronizado con la realidad.
