@@ -129,14 +129,21 @@ DEFAULT_PREP_TIME_MINUTES=25       # tiempo estimado que se muestra al cliente
 
 ## Estado actual
 
-- ✅ Spec aprobado y versionado en `docs/superpowers/specs/`.
-- ✅ Plan de implementación en `docs/superpowers/plans/` (9 fases).
-- ✅ Phase 0 (Foundation): Next.js 16 + TS strict + Vitest + Zod env.
-- ✅ Phase 1 (DB schema): Drizzle ORM + schema completo (categorías, productos, pedidos, items, zonas, sesiones) + migración inicial generada.
-- ⏳ Pendiente: `docker-compose.yml` + aplicar migración contra Postgres local (Task 1.3).
-- ⏳ Pendiente: Phase 2 (core puro con TDD): pricing, state machine de pedido, validaciones, state machine del bot.
-- ⏳ Pendiente: Phases 3–9 (auth, menu CRUD, captura de pedido, impresión, zonas, bot WhatsApp, polish, deploy).
+- ✅ Spec aprobado y versionado en [`docs/superpowers/specs/`](docs/superpowers/specs/).
+- ✅ Plan de implementación en [`docs/superpowers/plans/`](docs/superpowers/plans/) — 9 fases, 43 tasks.
+- ✅ **Phase 0** (Foundation): Next.js 16 + TS strict + Vitest + Zod env.
+- ✅ **Phase 1** (DB schema + Task 1.3): Drizzle ORM, schema completo, `docker-compose.yml` para Postgres local, migración inicial aplicada.
+- 🟡 **Phase 2** (core puro con TDD): Task 2.1 (cálculo de precios) lista. Pendientes: 2.2 (state machine pedido), 2.3 (validación pedido), 2.4 (validación delivery cost), 2.5 (state machine bot WhatsApp).
+- ⏳ **Phases 3–9** (32 tasks restantes): auth, menu CRUD, captura de pedido, impresión 80mm, zonas de delivery, bot WhatsApp, polish, deploy.
 
-Branch de trabajo: `feature/implementacion-mvp`. Repo público: https://github.com/JuanP-a/restaurante-sistema
+### Infraestructura (fuera del spec, parte del repo)
+
+- ✅ CI en GitHub Actions: `pnpm build` (genera tipos de Next) + `pnpm test` + `pnpm audit --audit-level=high`.
+- ✅ Branch protection en `main`: requiere check `verify`, linear history, no force-push.
+- ✅ Dependabot security updates habilitado (PRs automáticos para CVEs).
+- ✅ LICENSE (All rights reserved) y SECURITY.md (disclosure a `juan12fc@gmail.com`).
+- ✅ Secret scanning + push protection activos en GitHub.
+
+Branch de trabajo: `feature/implementacion-mvp`. Repo: https://github.com/JuanP-a/restaurante-sistema. PRs contra `main` deben pasar el check `verify` antes de mergear.
 
 Cuando se avance, mantener este archivo sincronizado con la realidad.
