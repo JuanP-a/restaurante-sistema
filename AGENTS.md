@@ -81,11 +81,17 @@ pnpm dev                          # arranca Next.js en :3000
 
 El proyecto vive en un volumen externo (`/Volumes/M2 Mac/`) que no soporta atributos extendidos de APFS de forma nativa. macOS compensa creando archivos `._*` (AppleDouble) junto a cada archivo real — ensucian el IDE y pueden romper herramientas que asumen UTF-8 limpio (vitest fallaba con `PARSE_ERROR` hasta que los excluimos del glob de tests).
 
+**Dónde romper y por qué:**
+
+- `node_modules/` — vitest los ve si el glob no los excluye. Cubierto por `**/._*` en `vitest.config.ts`.
+- `.next/` — Turbopack persiste caché en `.next/cache/`. Si los `._*` se cuelan ahí, el binario de SWC falla con `Loading persistence directory failed: invalid digit found in string` y `pnpm build` aborta. **Después de cada build en este Mac, correr `find .next -name '._*' -delete` antes de rebuilder.**
+
 Gítense a `._*` en `.gitignore` (ya está), pero conviene correr de vez en cuando:
 
 ```bash
 dot_clean -m .                  # fusiona metadata al archivo padre y borra los ._*
-find . -name '._*' -delete      # limpia remanentes en node_modules/.next
+find . -name '._*' -delete       # limpia remanentes en todo el repo
+find .next -name '._*' -delete   # específicamente antes de pnpm build
 ```
 
 Si los IDE siguen mostrando `._*` después de esto, reiniciarlo suele forzar el re-escaneo del filesystem.

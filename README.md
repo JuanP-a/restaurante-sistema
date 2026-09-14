@@ -29,11 +29,26 @@ Para generar los valores de `ADMIN_PASSWORD_HASH` y `SESSION_SECRET` revisa `src
 |---------|----------|
 | `pnpm dev` | Servidor de desarrollo con HMR |
 | `pnpm build` | Build de producción |
-| `pnpm test` | Corre todos los tests una vez |
+| `pnpm test` | Corre todos los tests (unit + integration; requiere Docker con Postgres) |
+| `pnpm test:unit` | Solo unit tests (lo que corre CI) |
+| `pnpm test:integration` | Solo integration tests contra Postgres local |
 | `pnpm test:watch` | Tests en watch mode |
 | `pnpm typecheck` | `tsc --noEmit` |
-| `pnpm drizzle:generate` | Genera migración SQL desde `src/schema.ts` |
+| `pnpm drizzle:generate` | Genera migración SQL desde `src/infra/db/schema.ts` |
 | `pnpm drizzle:migrate` | Aplica migraciones pendientes a la DB |
+
+## Rutas actuales
+
+- `/login` — acceso admin (sesión por cookie HMAC)
+- `/admin/menu` — productos agrupados por categoría con toggle DISPONIBLE/AGOTADO
+- `/admin/menu/categories` — CRUD de categorías
+- `/admin/menu/products/[id]` — editor de producto
+
+API (protegidas por middleware excepto login y webhook de WhatsApp):
+
+- `POST /api/admin/login` — login con contraseña
+- `GET/POST /api/menu/categories`, `PATCH/DELETE /api/menu/categories/[id]`
+- `GET /api/menu/products[?active=true]`, `POST`, `GET/PATCH/DELETE /api/menu/products/[id]`
 
 ## Estructura
 
