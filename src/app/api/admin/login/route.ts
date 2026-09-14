@@ -3,7 +3,7 @@ import { getEnv } from "@/env";
 import { verifyPassword } from "@/infra/auth/password";
 import { createSessionToken, SESSION_COOKIE } from "@/infra/auth/session";
 import { getDb } from "@/infra/db/client";
-import { adminSessions } from "@/schema";
+import { adminSessions } from "@/infra/db/schema";
 
 export async function POST(req: NextRequest) {
   const env = getEnv();
