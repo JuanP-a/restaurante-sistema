@@ -154,7 +154,8 @@ DEFAULT_PREP_TIME_MINUTES=25       # tiempo estimado que se muestra al cliente
 - ✅ **Phase 2** (core puro con TDD): 41 tests verde, sin I/O. Cubre cálculo de precios, state machine de pedido (received/delivered/cancelled), validación de pedido nuevo, validación de rango de costo de envío (10–30 MXN), y state machine del bot de WhatsApp (9 estados).
 - ✅ **Phase 3** (Auth): bcrypt verifyPassword, HMAC session tokens, login API, middleware protegiendo `/admin` y rutas API, página `/login` funcional. 14 tests verde (3 password + 9 session + 2 env nuevos).
 - ✅ **Phase 4** (Menu CRUD): repo Drizzle para categorías/productos + `/api/menu/{categories,products}` CRUD + páginas admin (`/admin/menu`, `/admin/menu/categories`, `/admin/menu/products/[id]`) protegidas por middleware. 27 tests nuevos (11 DB + 16 API). PR #2 squash-merged.
-- ⏳ **Phases 5–9** (18 tasks restantes): captura de pedido, impresión 80mm, zonas de delivery, bot WhatsApp, polish, deploy.
+- ✅ **Phase 5** (Order capture): `orders_sequential_number_seq` (Postgres sequence) + `order-repository` (createOrder, listOrders, getOrder, updateOrderStatus) + in-process `EventEmitter` + SSE `/api/events` + `/api/orders` (GET list, POST create con cálculo de totales + costo envío desde colonia/override, GET detail, PATCH status con state machine guard) + páginas admin (`/admin/orders` dashboard con flash SSE, `/admin/orders/new` captura de pedido en 2 paneles, `/admin/orders/[id]` detalle con reprint + transición delivered). Nav admin actualizada (Pedidos/Nuevo/Menú/Categorías/Zonas). 15 tests nuevos (8 order-repository, 4 event-bus, 3 SSE, 8 orders API). **Total: 108 tests verde**.
+- ⏳ **Phases 6–9** (11 tasks restantes): impresión 80mm, zonas de delivery, bot WhatsApp, polish, deploy.
 
 ### Convenciones de testing (post-Phase 4)
 

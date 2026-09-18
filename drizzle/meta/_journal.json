@@ -8,6 +8,13 @@
       "when": 1789342267673,
       "tag": "0000_lying_blink",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789342267800,
+      "tag": "0001_orders_sequential_number_seq",
+      "breakpoints": true
     }
   ],
   "snapshots": []
