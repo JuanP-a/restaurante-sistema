@@ -4,10 +4,24 @@ import {
   orders,
   orderItems,
   orderEvents,
+  colonias,
+  deliveryZones,
   type Order,
   type OrderItem,
   type OrderStatus,
 } from "@/infra/db/schema";
+
+export async function getColoniaDeliveryCost(
+  coloniaId: string,
+): Promise<string | null> {
+  const db = getDb();
+  const [row] = await db
+    .select({ cost: deliveryZones.cost })
+    .from(colonias)
+    .innerJoin(deliveryZones, eq(colonias.zoneId, deliveryZones.id))
+    .where(eq(colonias.id, coloniaId));
+  return row?.cost ?? null;
+}
 
 export type CreateOrderItemInput = {
   productId: string;
