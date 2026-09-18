@@ -93,6 +93,12 @@ export const orders = pgTable("orders", {
   seqIdx: index("orders_seq_idx").on(t.sequentialNumber),
 }));
 
+export type OrderStatus = (typeof orderStatusEnum.enumValues)[number];
+export type ServiceType = (typeof serviceTypeEnum.enumValues)[number];
+export type OrderSource = (typeof orderSourceEnum.enumValues)[number];
+export type Order = typeof orders.$inferSelect;
+export type OrderNew = typeof orders.$inferInsert;
+
 export const orderItems = pgTable("order_items", {
   id: uuid("id").primaryKey().defaultRandom(),
   orderId: uuid("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
@@ -105,6 +111,9 @@ export const orderItems = pgTable("order_items", {
   extraIngredients: jsonb("extra_ingredients").$type<{ name: string; price: string }[]>().notNull().default([]),
   itemTotal: decimal("item_total", { precision: 10, scale: 2 }).notNull(),
 }, (t) => ({ orderIdx: index("order_items_order_idx").on(t.orderId) }));
+
+export type OrderItem = typeof orderItems.$inferSelect;
+export type OrderItemNew = typeof orderItems.$inferInsert;
 
 export const orderEvents = pgTable("order_events", {
   id: uuid("id").primaryKey().defaultRandom(),
