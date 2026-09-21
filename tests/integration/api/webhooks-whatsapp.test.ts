@@ -196,3 +196,79 @@ describe("POST /api/webhooks/whatsapp", () => {
     resetSession(PHONE);
   });
 });
+
+describe("webhook signature verification gating", () => {
+  test("POST con WHATSAPP_VERIFY_TOKEN configurado y signature inválida → 401", async () => {
+    const saved = process.env.WHATSAPP_VERIFY_TOKEN;
+    process.env.WHATSAPP_VERIFY_TOKEN = "test-secret";
+
+    vi.resetModules();
+    const { POST } = await import("@/app/api/webhooks/whatsapp/route");
+    const req = new Request("http://localhost/api/webhooks/whatsapp", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-hub-signature-256": "sha256=deadbeef",
+      },
+      body: JSON.stringify(textMsg("5215551112222", "hola")),
+    });
+    const res = await POST(req as never);
+    expect(res.status).toBe(401);
+
+    if (saved === undefined) delete process.env.WHATSAPP_VERIFY_TOKEN;
+    else process.env.WHATSAPP_VERIFY_TOKEN = saved;
+    vi.resetModules();
+  });
+
+  test("POST sin WHATSAPP_VERIFY_TOKEN configurado → no verifica signature", async () => {
+    const saved = process.env.WHATSAPP_VERIFY_TOKEN;
+    delete process.env.WHATSAPP_VERIFY_TOKEN;
+    vi.resetModules();
+    const { POST } = await import("@/app/api/webhooks/whatsapp/route");
+    const res = await POST(
+      makeWebhook(textMsg("5215551113333", "hola")) as never,
+    );
+    expect(res.status).toBe(200);
+    if (saved !== undefined) process.env.WHATSAPP_VERIFY_TOKEN = saved;
+    vi.resetModules();
+  });
+});
+
+describe("per-phone serialization (withPhoneLock)", () => {
+  test("dos webhooks concurrentes para el mismo phone serializan", async () => {
+    const cat = await createCategory({ name: "Tacos" });
+    await createProduct({
+      categoryId: cat.id,
+      name: "Pastor",
+      basePrice: "50",
+    });
+    await createProduct({
+      categoryId: cat.id,
+      name: "Lengua",
+      basePrice: "55",
+    });
+
+    const { POST } = await import("@/app/api/webhooks/whatsapp/route");
+    const sessionStore = await import("@/infra/whatsapp/session-store");
+    const phone = "5215559990001";
+    sessionStore.resetSession(phone);
+
+    // Fire two events back-to-back: 'hola' + cat:X. With serialization,
+    // the second sees the state left by the first.
+    const [res1, res2] = await Promise.all([
+      POST(makeWebhook(textMsg(phone, "hola")) as never),
+      POST(makeWebhook(listReplyMsg(phone, "cat:cat-fake")) as never),
+    ]);
+
+    expect(res1.status).toBe(200);
+    expect(res2.status).toBe(200);
+
+    // Re-import session-store to make sure we read the same Map instance
+    // the route handler used (vi.resetModules in earlier tests can cause
+    // module-cache skew).
+    const fresh = await import("@/infra/whatsapp/session-store");
+    const state = fresh.getSession(phone);
+    expect(["browsing_category", "browsing_product"]).toContain(state.state);
+    fresh.resetSession(phone);
+  });
+});

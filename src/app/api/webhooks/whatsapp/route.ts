@@ -6,6 +6,7 @@ import {
   applyEvent,
   getSession,
   resetSession,
+  withPhoneLock,
 } from "@/infra/whatsapp/session-store";
 import { sendButtons, sendList, sendText } from "@/infra/whatsapp/client";
 import { type BotEvent, type BotState } from "@/core/bot/state-machine";
@@ -30,10 +31,14 @@ export async function POST(req: NextRequest): Promise<Response> {
   const raw = await req.text();
   const sig =
     req.headers.get("x-hub-signature-256")?.replace(/^sha256=/, "") ?? "";
-  if (env.NODE_ENV === "production") {
-    if (!verifyWebhookSignature(raw, sig, env.WHATSAPP_VERIFY_TOKEN ?? "")) {
-      return NextResponse.json({ ok: false }, { status: 401 });
-    }
+  // Verify signature whenever a verify token is configured, regardless of
+  // NODE_ENV. Staging typically runs as "development" but is reachable from
+  // the public internet and needs the same auth as prod.
+  if (
+    env.WHATSAPP_VERIFY_TOKEN &&
+    !verifyWebhookSignature(raw, sig, env.WHATSAPP_VERIFY_TOKEN)
+  ) {
+    return NextResponse.json({ ok: false }, { status: 401 });
   }
 
   let body: unknown;
@@ -76,7 +81,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     raw_input = String((msg[type] as { body?: string })?.body ?? "");
   }
 
-  await processMessage(phone, raw_input);
+  await withPhoneLock(phone, () => processMessage(phone, raw_input));
   return NextResponse.json({ ok: true });
 }
 

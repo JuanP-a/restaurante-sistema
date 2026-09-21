@@ -5,6 +5,7 @@ import { calculateOrderTotals } from "@/core/pricing/calculate-order";
 import { getProduct } from "@/infra/db/menu-repository";
 import { getColoniaDeliveryCost } from "@/infra/db/delivery-repository";
 import { emitEvent } from "@/infra/events/event-bus";
+import { validateDeliveryCost } from "@/core/delivery/validate-cost";
 
 export async function GET(req: NextRequest) {
   const status = new URL(req.url).searchParams.get("status");
@@ -28,7 +29,6 @@ type IncomingOrder = {
   deliveryAddress?: string;
   deliveryColoniaId?: string;
   deliveryCostOverride?: string;
-  source?: "whatsapp" | "staff";
   notes?: string;
   items: IncomingItem[];
 };
@@ -86,8 +86,16 @@ export async function POST(req: NextRequest) {
 
   let deliveryCost = "0";
   if (body.serviceType === "delivery") {
-    if (body.deliveryCostOverride) {
-      deliveryCost = String(body.deliveryCostOverride);
+    if (body.deliveryCostOverride != null) {
+      const overrideStr = String(body.deliveryCostOverride);
+      const v = validateDeliveryCost(overrideStr);
+      if (!v.ok) {
+        return NextResponse.json(
+          { ok: false, error: { message: v.error.message } },
+          { status: 400 },
+        );
+      }
+      deliveryCost = overrideStr;
     } else if (body.deliveryColoniaId) {
       const cost = await getColoniaDeliveryCost(body.deliveryColoniaId);
       if (cost) deliveryCost = cost;
@@ -113,7 +121,10 @@ export async function POST(req: NextRequest) {
     deliveryCost,
     subtotal: totals.subtotal,
     total: totals.total,
-    source: body.source ?? "staff",
+    // El endpoint admin solo emite pedidos 'staff'. El webhook WhatsApp es
+    // el único path que crea pedidos 'whatsapp' — forzar acá previene
+    // spoofing desde un cliente staff con curl.
+    source: "staff",
     notes: body.notes ?? "",
     items,
   });

@@ -112,6 +112,55 @@ describe("POST /api/orders", () => {
     );
     expect(res.status).toBe(400);
   });
+
+  test("rechaza deliveryCostOverride fuera de rango (400)", async () => {
+    const cat = await createCategory({ name: "Tacos" });
+    const product = await createProduct({
+      categoryId: cat.id,
+      name: "Pastor",
+      basePrice: "50.00",
+    });
+
+    const { POST } = await import("@/app/api/orders/route");
+    for (const badCost of ["0.01", "-50", "abc", "", "500"]) {
+      const res = await POST(
+        makePost({
+          serviceType: "delivery",
+          customerPhone: "5551234567",
+          deliveryCostOverride: badCost,
+          items: [{ productId: product.id, quantity: 1 }],
+        }),
+      );
+      expect(res.status, `cost="${badCost}"`).toBe(400);
+      const json = await res.json();
+      expect(json.ok).toBe(false);
+      expect(typeof json.error.message).toBe("string");
+    }
+  });
+
+  test("acepta deliveryCostOverride válido (10-30)", async () => {
+    const cat = await createCategory({ name: "Tacos" });
+    const product = await createProduct({
+      categoryId: cat.id,
+      name: "Pastor",
+      basePrice: "50.00",
+    });
+
+    const { POST } = await import("@/app/api/orders/route");
+    const res = await POST(
+      makePost({
+        serviceType: "delivery",
+        customerPhone: "5551234567",
+        customerName: "Test",
+        deliveryAddress: "Calle 123",
+        deliveryCostOverride: "20",
+        items: [{ productId: product.id, quantity: 1 }],
+      }),
+    );
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.data.deliveryCost).toBe("20.00");
+  });
 });
 
 describe("GET /api/orders", () => {
