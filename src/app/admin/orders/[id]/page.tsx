@@ -7,6 +7,10 @@ import { PageContainer } from "@/ui/PageContainer";
 import { PageHeading } from "@/ui/PageHeading";
 import { OrderActions } from "./order-actions";
 
+// Server-side DB access needs DATABASE_URL at build time; skip prerender so
+// `next build` in CI (no .env) doesn't blow up on env.ts Zod parse.
+export const dynamic = "force-dynamic";
+
 type RouteParams = { id: string };
 
 export async function generateMetadata({
