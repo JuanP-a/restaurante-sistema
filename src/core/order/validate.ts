@@ -13,11 +13,27 @@ export type ValidationError =
   | { kind: "no-items"; message: string }
   | { kind: "missing-phone"; message: string }
   | { kind: "missing-address"; message: string }
-  | { kind: "missing-zona"; message: string };
+  | { kind: "missing-zona"; message: string }
+  | { kind: "invalid-quantity"; message: string };
 
 export function validateNewOrder(input: NewOrderInput): Result<true, ValidationError> {
   if (!input.items || input.items.length === 0) {
     return { ok: false, error: { kind: "no-items", message: "El pedido debe tener al menos un producto" } };
+  }
+  for (const item of input.items) {
+    if (
+      typeof item.quantity !== "number" ||
+      !Number.isInteger(item.quantity) ||
+      item.quantity < 1
+    ) {
+      return {
+        ok: false,
+        error: {
+          kind: "invalid-quantity",
+          message: "Cantidad debe ser entero positivo",
+        },
+      };
+    }
   }
   if (!input.customerPhone || input.customerPhone.trim() === "") {
     return { ok: false, error: { kind: "missing-phone", message: "Falta el teléfono del cliente" } };
