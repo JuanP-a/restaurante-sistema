@@ -1,8 +1,11 @@
 "use client";
-
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Category, Product } from "@/types/domain";
+import { Button } from "@/ui/Button";
+import { CardList, CardListItem } from "@/ui/Card";
+import { PageContainer } from "@/ui/PageContainer";
+import { PageHeading } from "@/ui/PageHeading";
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -34,9 +37,9 @@ export default function AdminProductsPage() {
   const visible = showInactive ? products : products.filter((p) => p.active);
 
   return (
-    <div className="mx-auto max-w-5xl p-6">
+    <PageContainer width="lg">
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Productos</h1>
+        <PageHeading>Productos</PageHeading>
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
@@ -52,34 +55,27 @@ export default function AdminProductsPage() {
         return (
           <section key={cat.id} className="mb-6">
             <h2 className="mb-2 text-lg font-semibold">{cat.name}</h2>
-            <ul className="divide-y rounded border bg-white">
+            <CardList>
               {items.map((p) => (
-                <li
-                  key={p.id}
-                  className="flex items-center justify-between p-3"
-                >
+                <CardListItem key={p.id}>
                   <Link
                     href={`/admin/menu/products/${p.id}`}
                     className="flex-1 underline-offset-2 hover:underline"
                   >
                     {p.name} — ${p.basePrice}
                   </Link>
-                  <button
+                  <Button
                     onClick={() => toggle(p)}
-                    className={`rounded px-3 py-1 text-xs ${
-                      p.active
-                        ? "bg-green-100 text-green-800"
-                        : "bg-gray-200 text-gray-600"
-                    }`}
+                    variant={p.active ? "success" : "inactive"}
                   >
                     {p.active ? "DISPONIBLE" : "AGOTADO"}
-                  </button>
-                </li>
+                  </Button>
+                </CardListItem>
               ))}
-            </ul>
+            </CardList>
           </section>
         );
       })}
-    </div>
+    </PageContainer>
   );
 }

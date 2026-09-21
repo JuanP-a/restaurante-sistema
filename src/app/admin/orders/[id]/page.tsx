@@ -1,23 +1,27 @@
 "use client";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { OrderDetail, OrderItemRow } from "@/types/domain";
+import { Button } from "@/ui/Button";
+import { Card, CardList, CardListItem } from "@/ui/Card";
+import { Loading } from "@/ui/Loading";
+import { PageContainer } from "@/ui/PageContainer";
+import { PageHeading } from "@/ui/PageHeading";
 
 export default function OrderDetail({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const { id } = use(params);
   const router = useRouter();
   const [d, setD] = useState<OrderDetail | null>(null);
 
   useEffect(() => {
-    void params.then(({ id }) => {
-      fetch(`/api/orders/${id}`)
-        .then((r) => r.json())
-        .then((res: { data: OrderDetail }) => setD(res.data));
-    });
-  }, [params]);
+    fetch(`/api/orders/${id}`)
+      .then((r) => r.json())
+      .then((res: { data: OrderDetail }) => setD(res.data));
+  }, [id]);
 
   async function delivered(): Promise<void> {
     if (!d) return;
@@ -29,12 +33,12 @@ export default function OrderDetail({
     router.push("/admin/orders");
   }
 
-  if (!d) return <div className="p-6">Cargando...</div>;
+  if (!d) return <Loading />;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4 p-6">
-      <h1 className="text-2xl font-bold">Pedido #{d.order.sequentialNumber}</h1>
-      <div className="rounded border bg-white p-4">
+    <PageContainer width="sm" className="space-y-4">
+      <PageHeading>Pedido #{d.order.sequentialNumber}</PageHeading>
+      <Card className="p-4">
         <p>
           <b>Estado:</b> {d.order.status}
         </p>
@@ -59,10 +63,10 @@ export default function OrderDetail({
         <p className="text-sm text-gray-500">
           {new Date(d.order.createdAt).toLocaleString()}
         </p>
-      </div>
-      <ul className="divide-y rounded border bg-white">
+      </Card>
+      <CardList>
         {d.items.map((it: OrderItemRow) => (
-          <li key={it.id} className="p-3">
+          <CardListItem key={it.id} className="block p-3">
             <div className="flex justify-between">
               <span>
                 {it.quantity}x {it.productNameSnapshot}
@@ -79,40 +83,45 @@ export default function OrderDetail({
                 + {e.name} (${e.price})
               </div>
             ))}
-          </li>
+          </CardListItem>
         ))}
-      </ul>
-      <div className="rounded border bg-white p-4 text-right">
+      </CardList>
+      <Card className="p-4 text-right">
         <p>Subtotal: ${d.order.subtotal}</p>
         <p>Envío: ${d.order.deliveryCost}</p>
         <p className="text-xl font-bold">Total: ${d.order.total}</p>
-      </div>
+      </Card>
       <div className="flex gap-2">
         <a
           href={`/print/${d.order.id}/kitchen`}
           target="_blank"
           rel="noreferrer"
-          className="flex-1 rounded bg-gray-800 py-2 text-center text-white"
+          className="flex-1"
         >
-          Reimprimir comanda
+          <Button variant="secondary" className="w-full py-2">
+            Reimprimir comanda
+          </Button>
         </a>
         <a
           href={`/print/${d.order.id}/bill`}
           target="_blank"
           rel="noreferrer"
-          className="flex-1 rounded bg-gray-800 py-2 text-center text-white"
+          className="flex-1"
         >
-          Reimprimir cuenta
+          <Button variant="secondary" className="w-full py-2">
+            Reimprimir cuenta
+          </Button>
         </a>
       </div>
       {d.order.status === "received" && (
-        <button
+        <Button
           onClick={() => void delivered()}
-          className="w-full rounded bg-green-600 py-2 text-white"
+          variant="primary"
+          className="w-full bg-green-600 py-2"
         >
           Marcar como entregado
-        </button>
+        </Button>
       )}
-    </div>
+    </PageContainer>
   );
 }

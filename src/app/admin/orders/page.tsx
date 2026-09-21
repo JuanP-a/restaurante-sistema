@@ -2,6 +2,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { OrderRow } from "@/types/domain";
+import { Button } from "@/ui/Button";
+import { CardList, CardListItem } from "@/ui/Card";
+import { PageContainer } from "@/ui/PageContainer";
+import { PageHeading } from "@/ui/PageHeading";
 
 export default function OrdersDashboard() {
   const [orders, setOrders] = useState<OrderRow[]>([]);
@@ -19,16 +23,22 @@ export default function OrdersDashboard() {
 
   useEffect(() => {
     const ev = new EventSource("/api/events");
+    const timers = new Map<string, ReturnType<typeof setTimeout>>();
     ev.addEventListener("order_created", (e: MessageEvent) => {
       const o = JSON.parse(e.data) as OrderRow;
       setOrders((prev) => [o, ...prev.filter((x) => x.id !== o.id)]);
       setIsNew((prev) => ({ ...prev, [o.id]: true }));
-      setTimeout(
-        () => setIsNew((prev) => ({ ...prev, [o.id]: false })),
-        30000,
-      );
+      const t = setTimeout(() => {
+        setIsNew((prev) => ({ ...prev, [o.id]: false }));
+        timers.delete(o.id);
+      }, 30000);
+      timers.set(o.id, t);
     });
-    return () => ev.close();
+    return () => {
+      ev.close();
+      timers.forEach((t) => clearTimeout(t));
+      timers.clear();
+    };
   }, []);
 
   async function markDelivered(id: string): Promise<void> {
@@ -41,21 +51,22 @@ export default function OrdersDashboard() {
   }
 
   return (
-    <div className="p-6">
+    <PageContainer width="md">
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Pedidos activos ({orders.length})</h1>
-        <Link
-          href="/admin/orders/new"
-          className="rounded bg-black px-4 py-2 text-white"
-        >
-          + Nuevo pedido
+        <PageHeading>Pedidos activos ({orders.length})</PageHeading>
+        <Link href="/admin/orders/new">
+          <Button>+ Nuevo pedido</Button>
         </Link>
       </div>
-      <ul className="space-y-2">
+      <div aria-live="polite" className="sr-only">
+        {Object.values(isNew).filter(Boolean).length > 0 &&
+          "Nuevo pedido recibido"}
+      </div>
+      <CardList>
         {orders.map((o) => (
-          <li
+          <CardListItem
             key={o.id}
-            className={`flex items-center justify-between rounded border bg-white p-4 ${isNew[o.id] ? "ring-2 ring-yellow-400" : ""}`}
+            className={`p-4 ${isNew[o.id] ? "ring-2 ring-yellow-400" : ""}`}
           >
             <Link href={`/admin/orders/${o.id}`} className="flex-1">
               <div className="font-bold">
@@ -69,15 +80,16 @@ export default function OrdersDashboard() {
               </div>
             </Link>
             <div className="text-lg font-semibold">${o.total}</div>
-            <button
+            <Button
+              variant="primary"
               onClick={() => void markDelivered(o.id)}
-              className="ml-4 rounded bg-green-600 px-3 py-1 text-sm text-white"
+              className="ml-4 bg-green-600 text-sm"
             >
               Entregado
-            </button>
-          </li>
+            </Button>
+          </CardListItem>
         ))}
-      </ul>
-    </div>
+      </CardList>
+    </PageContainer>
   );
 }

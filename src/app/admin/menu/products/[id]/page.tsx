@@ -3,6 +3,12 @@
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Product } from "@/types/domain";
+import { Button } from "@/ui/Button";
+import { ErrorMessage } from "@/ui/ErrorMessage";
+import { Input, Textarea } from "@/ui/Input";
+import { Loading } from "@/ui/Loading";
+import { PageContainer } from "@/ui/PageContainer";
+import { PageHeading } from "@/ui/PageHeading";
 
 export default function AdminProductDetail({
   params,
@@ -50,44 +56,37 @@ export default function AdminProductDetail({
   }
 
   if (!original) {
-    return <div className="mx-auto max-w-2xl p-6">Cargando...</div>;
+    return <Loading />;
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4 p-6">
-      <h1 className="text-2xl font-bold">Editar producto</h1>
-      <label className="block">
-        <span className="text-sm">Nombre</span>
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="w-full rounded border px-3 py-2"
-        />
-      </label>
-      <label className="block">
-        <span className="text-sm">Precio base</span>
-        <input
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          className="w-full rounded border px-3 py-2"
-        />
-      </label>
-      <label className="block">
-        <span className="text-sm">Descripción</span>
-        <textarea
-          value={desc}
-          onChange={(e) => setDesc(e.target.value)}
-          className="w-full rounded border px-3 py-2"
-        />
-      </label>
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <button
-        onClick={save}
-        disabled={saving}
-        className="rounded bg-black px-4 py-2 text-white disabled:opacity-50"
-      >
+    <PageContainer width="sm" className="space-y-4">
+      <PageHeading>Editar producto</PageHeading>
+      <Input
+        name="name"
+        label="Nombre"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        className="w-full"
+      />
+      <Input
+        name="price"
+        label="Precio base"
+        value={price}
+        onChange={(e) => setPrice(e.target.value)}
+        className="w-full"
+      />
+      <Textarea
+        name="description"
+        label="Descripción"
+        value={desc}
+        onChange={(e) => setDesc(e.target.value)}
+        className="w-full"
+      />
+      {error && <ErrorMessage>{error}</ErrorMessage>}
+      <Button onClick={save} disabled={saving}>
         {saving ? "Guardando..." : "Guardar"}
-      </button>
-    </div>
+      </Button>
+    </PageContainer>
   );
 }
