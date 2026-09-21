@@ -233,3 +233,42 @@ describe("webhook signature verification gating", () => {
     vi.resetModules();
   });
 });
+
+describe("per-phone serialization (withPhoneLock)", () => {
+  test("dos webhooks concurrentes para el mismo phone serializan", async () => {
+    const cat = await createCategory({ name: "Tacos" });
+    await createProduct({
+      categoryId: cat.id,
+      name: "Pastor",
+      basePrice: "50",
+    });
+    await createProduct({
+      categoryId: cat.id,
+      name: "Lengua",
+      basePrice: "55",
+    });
+
+    const { POST } = await import("@/app/api/webhooks/whatsapp/route");
+    const sessionStore = await import("@/infra/whatsapp/session-store");
+    const phone = "5215559990001";
+    sessionStore.resetSession(phone);
+
+    // Fire two events back-to-back: 'hola' + cat:X. With serialization,
+    // the second sees the state left by the first.
+    const [res1, res2] = await Promise.all([
+      POST(makeWebhook(textMsg(phone, "hola")) as never),
+      POST(makeWebhook(listReplyMsg(phone, "cat:cat-fake")) as never),
+    ]);
+
+    expect(res1.status).toBe(200);
+    expect(res2.status).toBe(200);
+
+    // Re-import session-store to make sure we read the same Map instance
+    // the route handler used (vi.resetModules in earlier tests can cause
+    // module-cache skew).
+    const fresh = await import("@/infra/whatsapp/session-store");
+    const state = fresh.getSession(phone);
+    expect(["browsing_category", "browsing_product"]).toContain(state.state);
+    fresh.resetSession(phone);
+  });
+});
