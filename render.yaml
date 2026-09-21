@@ -1,0 +1,34 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+# One-click deploy: render.com/dashboard → New → Blueprint → point a este repo
+# Postgres se crea automáticamente; web service lo referencia por env var.
+
+databases:
+  - name: restaurante-db
+    plan: starter           # free tier ok para MVP; ~$7/mes para prod
+    databaseName: restaurante
+    user: restaurante
+    region: oregon          # mismo region que el web service abajo
+
+services:
+  - type: web
+    name: restaurante-web
+    plan: starter
+    region: oregon
+    runtime: node
+    buildCommand: pnpm install --frozen-lockfile && pnpm build
+    startCommand: pnpm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: restaurante-db
+          property: connectionString
+      - key: NODE_ENV
+        value: production
+      # Setear manualmente en Render dashboard (no commiteables):
+      # ADMIN_PASSWORD_HASH, SESSION_SECRET, WHATSAPP_BSP_API_KEY,
+      # WHATSAPP_VERIFY_TOKEN, WHATSAPP_BSP_URL,
+      # BUSINESS_NAME, BUSINESS_ADDRESS, BUSINESS_PHONE,
+      # NEXT_PUBLIC_BUSINESS_NAME, NEXT_PUBLIC_BUSINESS_ADDRESS,
+      # NEXT_PUBLIC_BUSINESS_PHONE
