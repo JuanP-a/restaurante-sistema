@@ -29,7 +29,6 @@ type IncomingOrder = {
   deliveryAddress?: string;
   deliveryColoniaId?: string;
   deliveryCostOverride?: string;
-  source?: "whatsapp" | "staff";
   notes?: string;
   items: IncomingItem[];
 };
@@ -122,7 +121,10 @@ export async function POST(req: NextRequest) {
     deliveryCost,
     subtotal: totals.subtotal,
     total: totals.total,
-    source: body.source ?? "staff",
+    // El endpoint admin solo emite pedidos 'staff'. El webhook WhatsApp es
+    // el único path que crea pedidos 'whatsapp' — forzar acá previene
+    // spoofing desde un cliente staff con curl.
+    source: "staff",
     notes: body.notes ?? "",
     items,
   });
