@@ -1,15 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-
-type OrderRow = {
-  id: string;
-  sequentialNumber: number;
-  status: string;
-  serviceType: string;
-  total: string;
-  createdAt: string;
-};
+import type { OrderRow } from "@/types/domain";
 
 export default function OrdersDashboard() {
   const [orders, setOrders] = useState<OrderRow[]>([]);

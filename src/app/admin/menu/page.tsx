@@ -2,16 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-
-type Product = {
-  id: string;
-  categoryId: string;
-  name: string;
-  basePrice: string;
-  description: string;
-  active: boolean;
-};
-type Category = { id: string; name: string };
+import type { Category, Product } from "@/types/domain";
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);

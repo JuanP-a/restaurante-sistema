@@ -1,32 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-
-type OrderData = {
-  order: {
-    id: string;
-    sequentialNumber: number;
-    status: string;
-    serviceType: string;
-    subtotal: string;
-    deliveryCost: string;
-    total: string;
-    createdAt: string;
-    customerName: string;
-    customerPhone: string;
-    deliveryAddress?: string;
-    notes: string;
-  };
-  items: {
-    id: string;
-    quantity: number;
-    productNameSnapshot: string;
-    unitPrice: string;
-    itemTotal: string;
-    removedIngredients: string[];
-    extraIngredients: { name: string; price: string }[];
-  }[];
-};
+import type { OrderDetail, OrderItemRow } from "@/types/domain";
 
 export default function OrderDetail({
   params,
@@ -34,13 +9,13 @@ export default function OrderDetail({
   params: Promise<{ id: string }>;
 }) {
   const router = useRouter();
-  const [d, setD] = useState<OrderData | null>(null);
+  const [d, setD] = useState<OrderDetail | null>(null);
 
   useEffect(() => {
     void params.then(({ id }) => {
       fetch(`/api/orders/${id}`)
         .then((r) => r.json())
-        .then((res: { data: OrderData }) => setD(res.data));
+        .then((res: { data: OrderDetail }) => setD(res.data));
     });
   }, [params]);
 
@@ -86,7 +61,7 @@ export default function OrderDetail({
         </p>
       </div>
       <ul className="divide-y rounded border bg-white">
-        {d.items.map((it) => (
+        {d.items.map((it: OrderItemRow) => (
           <li key={it.id} className="p-3">
             <div className="flex justify-between">
               <span>
@@ -94,12 +69,12 @@ export default function OrderDetail({
               </span>
               <span>${it.itemTotal}</span>
             </div>
-            {it.removedIngredients.map((r) => (
+            {it.removedIngredients.map((r: string) => (
               <div key={r} className="pl-3 text-xs text-gray-500">
                 - sin {r}
               </div>
             ))}
-            {it.extraIngredients.map((e) => (
+            {it.extraIngredients.map((e: { name: string; price: string }) => (
               <div key={e.name} className="pl-3 text-xs text-gray-500">
                 + {e.name} (${e.price})
               </div>

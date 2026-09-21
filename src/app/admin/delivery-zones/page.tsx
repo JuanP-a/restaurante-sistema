@@ -1,15 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
+import type { Colonia } from "@/types/domain";
 
 type Zone = { id: string; name: string; cost: string; active: boolean };
-type Colonia = {
-  id: string;
-  name: string;
-  zoneId: string;
-  active: boolean;
-  zoneName: string;
-  zoneCost: string;
-};
 
 export default function DeliveryZonesPage() {
   const [zones, setZones] = useState<Zone[]>([]);

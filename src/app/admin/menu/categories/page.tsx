@@ -1,14 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-type Category = {
-  id: string;
-  name: string;
-  slug: string;
-  sortOrder: number;
-  active: boolean;
-};
+import type { Category } from "@/types/domain";
 
 export default function AdminCategoriesPage() {
   const [items, setItems] = useState<Category[]>([]);

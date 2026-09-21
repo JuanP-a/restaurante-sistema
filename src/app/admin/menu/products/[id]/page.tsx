@@ -2,14 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-
-type Product = {
-  id: string;
-  name: string;
-  basePrice: string;
-  description: string;
-  active: boolean;
-};
+import type { Product } from "@/types/domain";
 
 export default function AdminProductDetail({
   params,
@@ -33,7 +26,7 @@ export default function AdminProductDetail({
           setOriginal(d.data);
           setName(d.data.name);
           setPrice(d.data.basePrice);
-          setDesc(d.data.description);
+          setDesc(d.data.description ?? "");
         }
       });
   }, [id]);

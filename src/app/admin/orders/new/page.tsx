@@ -1,30 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-
-type Product = {
-  id: string;
-  categoryId: string;
-  name: string;
-  basePrice: string;
-  active: boolean;
-};
-type Category = { id: string; name: string; active: boolean };
-type CartItem = {
-  productId: string;
-  name: string;
-  basePrice: string;
-  quantity: number;
-  extras: { name: string; price: string }[];
-  removed: string[];
-};
-type Colonia = {
-  id: string;
-  name: string;
-  zoneId: string;
-  zoneName: string;
-  zoneCost: string;
-};
+import type { CartItem, Category, Colonia, Product } from "@/types/domain";
 
 export default function NewOrderPage() {
   const router = useRouter();
