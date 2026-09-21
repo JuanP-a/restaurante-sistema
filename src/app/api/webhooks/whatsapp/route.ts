@@ -30,10 +30,14 @@ export async function POST(req: NextRequest): Promise<Response> {
   const raw = await req.text();
   const sig =
     req.headers.get("x-hub-signature-256")?.replace(/^sha256=/, "") ?? "";
-  if (env.NODE_ENV === "production") {
-    if (!verifyWebhookSignature(raw, sig, env.WHATSAPP_VERIFY_TOKEN ?? "")) {
-      return NextResponse.json({ ok: false }, { status: 401 });
-    }
+  // Verify signature whenever a verify token is configured, regardless of
+  // NODE_ENV. Staging typically runs as "development" but is reachable from
+  // the public internet and needs the same auth as prod.
+  if (
+    env.WHATSAPP_VERIFY_TOKEN &&
+    !verifyWebhookSignature(raw, sig, env.WHATSAPP_VERIFY_TOKEN)
+  ) {
+    return NextResponse.json({ ok: false }, { status: 401 });
   }
 
   let body: unknown;
