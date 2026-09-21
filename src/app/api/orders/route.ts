@@ -3,7 +3,7 @@ import { createOrder, listOrders } from "@/infra/db/order-repository";
 import { validateNewOrder } from "@/core/order/validate";
 import { calculateOrderTotals } from "@/core/pricing/calculate-order";
 import { getProduct } from "@/infra/db/menu-repository";
-import { getColoniaDeliveryCost } from "@/infra/db/order-repository";
+import { getColoniaDeliveryCost } from "@/infra/db/delivery-repository";
 import { emitEvent } from "@/infra/events/event-bus";
 
 export async function GET(req: NextRequest) {
