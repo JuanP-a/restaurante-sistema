@@ -48,9 +48,7 @@ export default function NewOrderPage() {
     Promise.all([
       fetch("/api/menu/products?active=true").then((r) => r.json()),
       fetch("/api/menu/categories").then((r) => r.json()),
-      fetch("/api/delivery-zones/colonias")
-        .then((r) => r.json())
-        .catch(() => ({ data: [] })),
+      fetch("/api/delivery-zones/colonias").then((r) => r.json()),
     ]).then(
       ([p, c, co]: [
         { data: Product[] },
