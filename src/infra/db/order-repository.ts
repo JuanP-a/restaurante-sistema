@@ -46,33 +46,44 @@ export async function nextSequentialNumber(): Promise<number> {
 
 export async function createOrder(input: CreateOrderInput): Promise<Order> {
   const db = getDb();
-  const sequentialNumber = await nextSequentialNumber();
-  const [order] = await db
-    .insert(orders)
-    .values({
-      sequentialNumber,
-      serviceType: input.serviceType,
-      customerPhone: input.customerPhone,
-      customerName: input.customerName,
-      deliveryAddress: input.deliveryAddress,
-      deliveryColoniaId: input.deliveryColoniaId,
-      deliveryCostOverride: input.deliveryCostOverride,
-      deliveryCost: input.deliveryCost,
-      subtotal: input.subtotal,
-      total: input.total,
-      source: input.source,
-      notes: input.notes,
-    })
-    .returning();
-  if (!order) throw new Error("createOrder: insert returned no row");
+  return db.transaction(async (tx) => {
+    const result = await tx.execute<{ next: string | number }>(
+      sql`SELECT nextval('orders_sequential_number_seq') as next`,
+    );
+    const rows = (
+      result as unknown as { rows: { next: string | number }[] }
+    ).rows;
+    const sequentialNumber = Number(rows[0]?.next ?? 1);
 
-  for (const item of input.items) {
-    await db.insert(orderItems).values({ orderId: order.id, ...item });
-  }
-  await db
-    .insert(orderEvents)
-    .values({ orderId: order.id, kind: "created", payload: { source: input.source } });
-  return order;
+    const [order] = await tx
+      .insert(orders)
+      .values({
+        sequentialNumber,
+        serviceType: input.serviceType,
+        customerPhone: input.customerPhone,
+        customerName: input.customerName,
+        deliveryAddress: input.deliveryAddress,
+        deliveryColoniaId: input.deliveryColoniaId,
+        deliveryCostOverride: input.deliveryCostOverride,
+        deliveryCost: input.deliveryCost,
+        subtotal: input.subtotal,
+        total: input.total,
+        source: input.source,
+        notes: input.notes,
+      })
+      .returning();
+    if (!order) throw new Error("createOrder: insert returned no row");
+
+    for (const item of input.items) {
+      await tx.insert(orderItems).values({ orderId: order.id, ...item });
+    }
+    await tx.insert(orderEvents).values({
+      orderId: order.id,
+      kind: "created",
+      payload: { source: input.source },
+    });
+    return order;
+  });
 }
 
 export async function listOrders(filter?: {
@@ -104,20 +115,22 @@ export async function updateOrderStatus(
   status: OrderStatus,
 ): Promise<Order> {
   const db = getDb();
-  const [order] = await db
-    .update(orders)
-    .set({
-      status,
-      updatedAt: new Date(),
-      deliveredAt: status === "delivered" ? new Date() : null,
-    })
-    .where(eq(orders.id, id))
-    .returning();
-  if (!order) throw new Error(`updateOrderStatus: order ${id} not found`);
-  await db.insert(orderEvents).values({
-    orderId: id,
-    kind: "status_change",
-    payload: { to: status },
+  return db.transaction(async (tx) => {
+    const [order] = await tx
+      .update(orders)
+      .set({
+        status,
+        updatedAt: new Date(),
+        deliveredAt: status === "delivered" ? new Date() : null,
+      })
+      .where(eq(orders.id, id))
+      .returning();
+    if (!order) throw new Error(`updateOrderStatus: order ${id} not found`);
+    await tx.insert(orderEvents).values({
+      orderId: id,
+      kind: "status_change",
+      payload: { to: status },
+    });
+    return order;
   });
-  return order;
 }
