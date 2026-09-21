@@ -1,30 +1,16 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-
-type Product = {
-  id: string;
-  categoryId: string;
-  name: string;
-  basePrice: string;
-  active: boolean;
-};
-type Category = { id: string; name: string; active: boolean };
-type CartItem = {
-  productId: string;
-  name: string;
-  basePrice: string;
-  quantity: number;
-  extras: { name: string; price: string }[];
-  removed: string[];
-};
-type Colonia = {
-  id: string;
-  name: string;
-  zoneId: string;
-  zoneName: string;
-  zoneCost: string;
-};
+import type { CartItem, Category, Colonia, Product } from "@/types/domain";
+import {
+  CategoryListResponse,
+  ColoniaListResponse,
+  ErrorResponse,
+  ProductListResponse,
+} from "@/types/api-schemas";
+import { Button } from "@/ui/Button";
+import { ErrorMessage } from "@/ui/ErrorMessage";
+import { Input, Textarea } from "@/ui/Input";
 
 export default function NewOrderPage() {
   const router = useRouter();
@@ -50,16 +36,15 @@ export default function NewOrderPage() {
       fetch("/api/menu/categories").then((r) => r.json()),
       fetch("/api/delivery-zones/colonias").then((r) => r.json()),
     ]).then(
-      ([p, c, co]: [
-        { data: Product[] },
-        { data: Category[] },
-        { data: Colonia[] },
-      ]) => {
-        setProducts(p.data);
-        const activeCats = c.data.filter((x) => x.active);
+      ([p, c, co]) => {
+        const products = ProductListResponse.parse(p).data;
+        const categories = CategoryListResponse.parse(c).data;
+        const colonias = ColoniaListResponse.parse(co).data;
+        setProducts(products);
+        const activeCats = categories.filter((x) => x.active);
         setCategories(activeCats);
         if (activeCats[0]) setActiveCategory(activeCats[0].id);
-        setColonias(co.data ?? []);
+        setColonias(colonias ?? []);
       },
     );
   }, []);
@@ -106,19 +91,27 @@ export default function NewOrderPage() {
     [products, activeCategory, search],
   );
 
-  const subtotal = cart.reduce(
-    (s, i) =>
-      s +
-      Number(i.basePrice) * i.quantity +
-      i.extras.reduce((e, x) => e + Number(x.price), 0) * i.quantity,
-    0,
+  const subtotal = useMemo(
+    () =>
+      cart.reduce(
+        (s, i) =>
+          s +
+          Number(i.basePrice) * i.quantity +
+          i.extras.reduce((e, x) => e + Number(x.price), 0) * i.quantity,
+        0,
+      ),
+    [cart],
   );
   const selectedColonia = colonias.find((c) => c.id === coloniaId);
-  const deliveryCost = overrideCost
-    ? Number(overrideCost)
-    : selectedColonia
-      ? Number(selectedColonia.zoneCost)
-      : 0;
+  const deliveryCost = useMemo(
+    () =>
+      overrideCost
+        ? Number(overrideCost)
+        : selectedColonia
+          ? Number(selectedColonia.zoneCost)
+          : 0,
+    [overrideCost, selectedColonia],
+  );
   const total = subtotal + deliveryCost;
 
   async function submit(): Promise<void> {
@@ -151,7 +144,6 @@ export default function NewOrderPage() {
         deliveryColoniaId: coloniaId || undefined,
         deliveryCostOverride: overrideCost || undefined,
         notes,
-        source: "staff",
         items: cart.map((i) => ({
           productId: i.productId,
           quantity: i.quantity,
@@ -162,7 +154,7 @@ export default function NewOrderPage() {
     });
     setSubmitting(false);
     if (!res.ok) {
-      const d = (await res.json()) as { error: { message: string } };
+      const d = ErrorResponse.parse(await res.json());
       setError(d.error.message);
       return;
     }
@@ -173,11 +165,12 @@ export default function NewOrderPage() {
   return (
     <div className="grid h-screen grid-cols-2 gap-4 p-4">
       <div className="overflow-y-auto">
-        <input
+        <Input
+          name="search"
+          placeholder="Buscar producto"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar producto"
-          className="mb-2 w-full rounded border px-3 py-2"
+          className="mb-2 w-full"
         />
         <div className="mb-2 flex gap-1 overflow-x-auto">
           {categories.map((c) => (
@@ -205,7 +198,13 @@ export default function NewOrderPage() {
           ))}
         </div>
       </div>
-      <div className="flex flex-col overflow-y-auto rounded border bg-white p-4">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          void submit();
+        }}
+        className="flex flex-col overflow-y-auto rounded border bg-white p-4"
+      >
         <h2 className="mb-2 text-lg font-bold">Carrito</h2>
         <ul className="mb-4 flex-1 divide-y">
           {cart.map((i, idx) => (
@@ -217,84 +216,102 @@ export default function NewOrderPage() {
                 {i.quantity}x {i.name}
               </span>
               <span>${(Number(i.basePrice) * i.quantity).toFixed(2)}</span>
-              <button
+              <Button
+                type="button"
                 onClick={() => removeFromCart(idx)}
-                className="text-xs text-red-600"
+                variant="danger"
               >
                 Quitar
-              </button>
+              </Button>
             </li>
           ))}
         </ul>
         <div className="space-y-2 border-t pt-3">
-          <input
+          <Input
+            name="customerName"
+            label="Nombre cliente"
             value={customerName}
             onChange={(e) => setCustomerName(e.target.value)}
-            placeholder="Nombre cliente"
-            className="w-full rounded border px-3 py-2"
+            className="w-full"
           />
-          <input
+          <Input
+            name="phone"
+            label="Teléfono"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder="Teléfono *"
-            className="w-full rounded border px-3 py-2"
+            className="w-full"
+            required
           />
-          <div className="flex gap-2">
-            <label className="flex-1">
-              <input
-                type="radio"
-                checked={serviceType === "local"}
-                onChange={() => setServiceType("local")}
-              />{" "}
-              Local
-            </label>
-            <label className="flex-1">
-              <input
-                type="radio"
-                checked={serviceType === "delivery"}
-                onChange={() => setServiceType("delivery")}
-              />{" "}
-              Domicilio
-            </label>
-          </div>
+          <fieldset>
+            <legend className="sr-only">Tipo de servicio</legend>
+            <div className="flex gap-2">
+              <label className="flex flex-1 items-center gap-2">
+                <input
+                  type="radio"
+                  name="serviceType"
+                  value="local"
+                  checked={serviceType === "local"}
+                  onChange={() => setServiceType("local")}
+                />
+                Local
+              </label>
+              <label className="flex flex-1 items-center gap-2">
+                <input
+                  type="radio"
+                  name="serviceType"
+                  value="delivery"
+                  checked={serviceType === "delivery"}
+                  onChange={() => setServiceType("delivery")}
+                />
+                Domicilio
+              </label>
+            </div>
+          </fieldset>
           {serviceType === "delivery" && (
             <>
-              <textarea
+              <Textarea
+                name="address"
+                label="Dirección completa"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                placeholder="Dirección completa *"
-                className="w-full rounded border px-3 py-2"
+                className="w-full"
                 rows={2}
+                required
               />
-              <select
-                value={coloniaId}
-                onChange={(e) => setColoniaId(e.target.value)}
-                className="w-full rounded border px-3 py-2"
-              >
-                <option value="">— Seleccionar colonia —</option>
-                {colonias.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} ({c.zoneName} · ${c.zoneCost})
-                  </option>
-                ))}
-              </select>
-              <input
-                value={overrideCost}
-                onChange={(e) => setOverrideCost(e.target.value)}
-                placeholder="Costo envío manual (10-30)"
+              <label className="block">
+                <span className="mb-1 block text-sm">Colonia</span>
+                <select
+                  value={coloniaId}
+                  onChange={(e) => setColoniaId(e.target.value)}
+                  className="w-full rounded border px-3 py-2"
+                >
+                  <option value="">— Seleccionar colonia —</option>
+                  {colonias.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.zoneName} · ${c.zoneCost})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <Input
+                name="overrideCost"
+                label="Costo envío manual (10-30)"
                 type="number"
                 min={10}
                 max={30}
                 step={0.5}
-                className="w-full rounded border px-3 py-2"
+                value={overrideCost}
+                onChange={(e) => setOverrideCost(e.target.value)}
+                className="w-full"
               />
             </>
           )}
-          <textarea
+          <Textarea
+            name="notes"
+            label="Notas"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Notas"
-            className="w-full rounded border px-3 py-2"
+            className="w-full"
             rows={2}
           />
           <div className="text-right text-sm">
@@ -308,16 +325,16 @@ export default function NewOrderPage() {
           <div className="text-right text-xl font-bold">
             Total: ${total.toFixed(2)}
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <button
-            onClick={() => void submit()}
+          {error && <ErrorMessage>{error}</ErrorMessage>}
+          <Button
+            type="submit"
             disabled={submitting}
-            className="w-full rounded bg-green-600 py-3 text-white disabled:opacity-50"
+            className="w-full bg-green-600 py-3"
           >
             {submitting ? "Creando..." : "Finalizar pedido"}
-          </button>
+          </Button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }

@@ -20,24 +20,20 @@ type Data = {
   }[];
 };
 
+const BIZ = {
+  name: process.env.NEXT_PUBLIC_BUSINESS_NAME ?? "Mi Restaurante",
+  address: process.env.NEXT_PUBLIC_BUSINESS_ADDRESS ?? "",
+  phone: process.env.NEXT_PUBLIC_BUSINESS_PHONE ?? "",
+};
+
 export default function BillPrint({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const [data, setData] = useState<Data | null>(null);
-  const [biz, setBiz] = useState({
-    name: "Mi Restaurante",
-    address: "",
-    phone: "",
-  });
 
   useEffect(() => {
-    setBiz({
-      name: process.env.NEXT_PUBLIC_BUSINESS_NAME ?? "Mi Restaurante",
-      address: process.env.NEXT_PUBLIC_BUSINESS_ADDRESS ?? "",
-      phone: process.env.NEXT_PUBLIC_BUSINESS_PHONE ?? "",
-    });
     void params.then(({ id }) => {
       void fetch(`/api/orders/${id}`)
         .then((r) => r.json())
@@ -52,9 +48,9 @@ export default function BillPrint({
   if (!data) return <div>Cargando...</div>;
   return (
     <div className="p-2 font-mono text-sm">
-      <div className="text-center font-bold">{biz.name}</div>
-      {biz.address && <div className="text-center text-xs">{biz.address}</div>}
-      {biz.phone && <div className="text-center text-xs">{biz.phone}</div>}
+      <div className="text-center font-bold">{BIZ.name}</div>
+      {BIZ.address && <div className="text-center text-xs">{BIZ.address}</div>}
+      {BIZ.phone && <div className="text-center text-xs">{BIZ.phone}</div>}
       <div className="my-2 border-t-2 border-dashed" />
       <div>{data.order.serviceType === "delivery" ? "DOMICILIO" : "LOCAL"}</div>
       <div>PEDIDO #{data.order.sequentialNumber}</div>

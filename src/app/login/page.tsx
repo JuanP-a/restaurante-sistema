@@ -1,6 +1,9 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Input } from "@/ui/Input";
+import { Button } from "@/ui/Button";
+import { ErrorMessage } from "@/ui/ErrorMessage";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -33,22 +36,20 @@ export default function LoginPage() {
         className="w-80 space-y-4 rounded bg-white p-6 shadow"
       >
         <h1 className="text-xl font-bold">Acceso al sistema</h1>
-        <input
+        <Input
           type="password"
+          name="password"
+          label="Contraseña"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Contraseña"
-          className="w-full rounded border px-3 py-2"
+          className="w-full"
           autoFocus
+          required
         />
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded bg-black py-2 text-white disabled:opacity-50"
-        >
+        {error && <ErrorMessage>{error}</ErrorMessage>}
+        <Button type="submit" disabled={loading} className="w-full py-2">
           {loading ? "Entrando..." : "Entrar"}
-        </button>
+        </Button>
       </form>
     </div>
   );

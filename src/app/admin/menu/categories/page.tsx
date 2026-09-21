@@ -1,14 +1,13 @@
 "use client";
-
 import { useEffect, useState } from "react";
-
-type Category = {
-  id: string;
-  name: string;
-  slug: string;
-  sortOrder: number;
-  active: boolean;
-};
+import type { Category } from "@/types/domain";
+import { CategoryListResponse, parseErrorMessage } from "@/types/api-schemas";
+import { Button } from "@/ui/Button";
+import { CardList, CardListItem } from "@/ui/Card";
+import { ErrorMessage } from "@/ui/ErrorMessage";
+import { Input } from "@/ui/Input";
+import { PageContainer } from "@/ui/PageContainer";
+import { PageHeading } from "@/ui/PageHeading";
 
 export default function AdminCategoriesPage() {
   const [items, setItems] = useState<Category[]>([]);
@@ -17,8 +16,9 @@ export default function AdminCategoriesPage() {
   const [loading, setLoading] = useState(false);
 
   async function load() {
-    const r = await fetch("/api/menu/categories");
-    const d = (await r.json()) as { ok: boolean; data: Category[] };
+    const d = CategoryListResponse.parse(
+      await fetch("/api/menu/categories").then((r) => r.json()),
+    );
     if (d.ok) setItems(d.data);
   }
 
@@ -37,8 +37,7 @@ export default function AdminCategoriesPage() {
     });
     setLoading(false);
     if (!r.ok) {
-      const d = (await r.json()) as { error?: { message: string } };
-      setError(d.error?.message ?? "Error");
+      setError(await parseErrorMessage(r));
       return;
     }
     setName("");
@@ -61,47 +60,41 @@ export default function AdminCategoriesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl p-6">
-      <h1 className="mb-4 text-2xl font-bold">Categorías</h1>
-      <div className="mb-4 flex gap-2">
-        <input
+    <PageContainer width="lg">
+      <PageHeading className="mb-4">Categorías</PageHeading>
+      <div className="mb-4 flex flex-wrap items-start gap-2">
+        <Input
+          name="name"
+          placeholder="Nueva categoría"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Nueva categoría"
-          className="rounded border px-3 py-2"
         />
-        <button
-          onClick={add}
-          disabled={loading}
-          className="rounded bg-black px-4 py-2 text-white disabled:opacity-50"
-        >
+        <Button onClick={add} disabled={loading}>
           Agregar
-        </button>
-        {error && <span className="self-center text-sm text-red-600">{error}</span>}
+        </Button>
+        {error && (
+          <div className="basis-full">
+            <ErrorMessage>{error}</ErrorMessage>
+          </div>
+        )}
       </div>
-      <ul className="divide-y rounded border bg-white">
+      <CardList>
         {items.map((c) => (
-          <li key={c.id} className="flex items-center justify-between p-3">
+          <CardListItem key={c.id}>
             <span className={c.active ? "" : "text-gray-400 line-through"}>
               {c.name}
             </span>
             <div className="flex gap-2">
-              <button
-                onClick={() => toggle(c)}
-                className="text-sm text-blue-600"
-              >
+              <Button onClick={() => toggle(c)} variant="link">
                 {c.active ? "Desactivar" : "Activar"}
-              </button>
-              <button
-                onClick={() => remove(c.id)}
-                className="text-sm text-red-600"
-              >
+              </Button>
+              <Button onClick={() => remove(c.id)} variant="link" className="text-red-600">
                 Eliminar
-              </button>
+              </Button>
             </div>
-          </li>
+          </CardListItem>
         ))}
-      </ul>
-    </div>
+      </CardList>
+    </PageContainer>
   );
 }
