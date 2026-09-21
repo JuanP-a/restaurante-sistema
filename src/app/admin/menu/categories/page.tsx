@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import type { Category } from "@/types/domain";
+import { CategoryListResponse, parseErrorMessage } from "@/types/api-schemas";
 import { Button } from "@/ui/Button";
 import { CardList, CardListItem } from "@/ui/Card";
 import { ErrorMessage } from "@/ui/ErrorMessage";
@@ -15,8 +16,9 @@ export default function AdminCategoriesPage() {
   const [loading, setLoading] = useState(false);
 
   async function load() {
-    const r = await fetch("/api/menu/categories");
-    const d = (await r.json()) as { ok: boolean; data: Category[] };
+    const d = CategoryListResponse.parse(
+      await fetch("/api/menu/categories").then((r) => r.json()),
+    );
     if (d.ok) setItems(d.data);
   }
 
@@ -35,8 +37,7 @@ export default function AdminCategoriesPage() {
     });
     setLoading(false);
     if (!r.ok) {
-      const d = await r.json();
-      setError(d.error?.message ?? "Error");
+      setError(await parseErrorMessage(r));
       return;
     }
     setName("");

@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { OrderRow } from "@/types/domain";
+import { OrderRowListResponse } from "@/types/api-schemas";
 import { Button } from "@/ui/Button";
 import { CardList, CardListItem } from "@/ui/Card";
 import { PageContainer } from "@/ui/PageContainer";
@@ -12,8 +13,9 @@ export default function OrdersDashboard() {
   const [isNew, setIsNew] = useState<Record<string, boolean>>({});
 
   async function load(): Promise<void> {
-    const r = await fetch("/api/orders?status=received");
-    const d = (await r.json()) as { data: OrderRow[] };
+    const d = OrderRowListResponse.parse(
+      await fetch("/api/orders?status=received").then((r) => r.json()),
+    );
     setOrders(d.data);
   }
 

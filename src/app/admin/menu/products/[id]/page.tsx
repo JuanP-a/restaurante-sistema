@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Product } from "@/types/domain";
+import { ProductResponse, parseErrorMessage } from "@/types/api-schemas";
 import { Button } from "@/ui/Button";
 import { ErrorMessage } from "@/ui/ErrorMessage";
 import { Input, Textarea } from "@/ui/Input";
@@ -26,7 +27,8 @@ export default function AdminProductDetail({
 
   useEffect(() => {
     fetch(`/api/menu/products/${id}`)
-      .then((r) => r.json() as Promise<{ ok: boolean; data?: Product }>)
+      .then((r) => r.json())
+      .then(ProductResponse.parse)
       .then((d) => {
         if (d.ok && d.data) {
           setOriginal(d.data);
@@ -48,8 +50,7 @@ export default function AdminProductDetail({
     });
     setSaving(false);
     if (!res.ok) {
-      const d = (await res.json()) as { error?: { message: string } };
-      setError(d.error?.message ?? "Error");
+      setError(await parseErrorMessage(res));
       return;
     }
     router.push("/admin/menu");

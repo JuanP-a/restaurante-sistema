@@ -2,6 +2,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { CartItem, Category, Colonia, Product } from "@/types/domain";
+import {
+  CategoryListResponse,
+  ColoniaListResponse,
+  ErrorResponse,
+  ProductListResponse,
+} from "@/types/api-schemas";
 import { Button } from "@/ui/Button";
 import { ErrorMessage } from "@/ui/ErrorMessage";
 import { Input, Textarea } from "@/ui/Input";
@@ -30,16 +36,15 @@ export default function NewOrderPage() {
       fetch("/api/menu/categories").then((r) => r.json()),
       fetch("/api/delivery-zones/colonias").then((r) => r.json()),
     ]).then(
-      ([p, c, co]: [
-        { data: Product[] },
-        { data: Category[] },
-        { data: Colonia[] },
-      ]) => {
-        setProducts(p.data);
-        const activeCats = c.data.filter((x) => x.active);
+      ([p, c, co]) => {
+        const products = ProductListResponse.parse(p).data;
+        const categories = CategoryListResponse.parse(c).data;
+        const colonias = ColoniaListResponse.parse(co).data;
+        setProducts(products);
+        const activeCats = categories.filter((x) => x.active);
         setCategories(activeCats);
         if (activeCats[0]) setActiveCategory(activeCats[0].id);
-        setColonias(co.data ?? []);
+        setColonias(colonias ?? []);
       },
     );
   }, []);
@@ -149,7 +154,7 @@ export default function NewOrderPage() {
     });
     setSubmitting(false);
     if (!res.ok) {
-      const d = (await res.json()) as { error: { message: string } };
+      const d = ErrorResponse.parse(await res.json());
       setError(d.error.message);
       return;
     }

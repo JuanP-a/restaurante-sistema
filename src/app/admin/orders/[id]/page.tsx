@@ -2,6 +2,7 @@
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { OrderDetail, OrderItemRow } from "@/types/domain";
+import { OrderDetailResponse } from "@/types/api-schemas";
 import { Button } from "@/ui/Button";
 import { Card, CardList, CardListItem } from "@/ui/Card";
 import { Loading } from "@/ui/Loading";
@@ -20,7 +21,8 @@ export default function OrderDetail({
   useEffect(() => {
     fetch(`/api/orders/${id}`)
       .then((r) => r.json())
-      .then((res: { data: OrderDetail }) => setD(res.data));
+      .then(OrderDetailResponse.parse)
+      .then((res) => setD(res.data));
   }, [id]);
 
   async function delivered(): Promise<void> {

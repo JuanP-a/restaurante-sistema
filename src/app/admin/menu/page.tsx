@@ -2,6 +2,10 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { Category, Product } from "@/types/domain";
+import {
+  CategoryListResponse,
+  ProductListResponse,
+} from "@/types/api-schemas";
 import { Button } from "@/ui/Button";
 import { CardList, CardListItem } from "@/ui/Card";
 import { PageContainer } from "@/ui/PageContainer";
@@ -14,8 +18,12 @@ export default function AdminProductsPage() {
 
   async function load() {
     const [p, c] = await Promise.all([
-      fetch("/api/menu/products").then((r) => r.json() as Promise<{ data: Product[] }>),
-      fetch("/api/menu/categories").then((r) => r.json() as Promise<{ data: Category[] }>),
+      fetch("/api/menu/products")
+        .then((r) => r.json())
+        .then(ProductListResponse.parse),
+      fetch("/api/menu/categories")
+        .then((r) => r.json())
+        .then(CategoryListResponse.parse),
     ]);
     setProducts(p.data);
     setCats(c.data);
