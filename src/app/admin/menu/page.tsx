@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Category, Product } from "@/types/domain";
 import { Button } from "@/ui/Button";
 import { CardList, CardListItem } from "@/ui/Card";
@@ -34,7 +34,10 @@ export default function AdminProductsPage() {
     load();
   }
 
-  const visible = showInactive ? products : products.filter((p) => p.active);
+  const visible = useMemo(
+    () => (showInactive ? products : products.filter((p) => p.active)),
+    [products, showInactive],
+  );
 
   return (
     <PageContainer width="lg">
