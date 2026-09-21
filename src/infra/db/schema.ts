@@ -70,6 +70,11 @@ export const colonias = pgTable("colonias", {
   active: boolean("active").notNull().default(true),
 }, (t) => ({ zoneIdx: index("colonias_zone_idx").on(t.zoneId) }));
 
+export type DeliveryZone = typeof deliveryZones.$inferSelect;
+export type DeliveryZoneNew = typeof deliveryZones.$inferInsert;
+export type Colonia = typeof colonias.$inferSelect;
+export type ColoniaNew = typeof colonias.$inferInsert;
+
 export const orders = pgTable("orders", {
   id: uuid("id").primaryKey().defaultRandom(),
   sequentialNumber: integer("sequential_number").notNull(),
