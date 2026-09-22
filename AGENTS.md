@@ -96,6 +96,49 @@ find .next -name '._*' -delete   # específicamente antes de pnpm build
 
 Si los IDE siguen mostrando `._*` después de esto, reiniciarlo suele forzar el re-escaneo del filesystem.
 
+### Mantenimiento: file mode 700 en volumen externo (rebase / merge)
+
+El mismo volumen externo que rompe con `._*` también escribe **cada archivo con mode `700` (rwx------)**, mientras que git index tiene `644`. Resultado: `chmod 644` es no-op en este filesystem (APFS protection), `git status` mienta diciendo "clean" cuando hay mode mismatch, y `git rebase`/`merge`/`checkout` que toquen muchos archivos fallan con errores crípticos:
+
+```
+error: Your local changes to the following files would be overwritten by merge:
+	package.json
+	pnpm-lock.yaml
+```
+
+**Síntomas típicos:**
+- `git diff --stat HEAD` muestra `127 files changed, 0 insertions(+), 0 deletions(-)` con solo `old mode 100644 / new mode 100755` por archivo.
+- `git rebase origin/main` aborta con "unstaged changes" pero `git status` está clean.
+- `git checkout <otra-branch>` se queja de "would be overwritten" para archivos que no tocaste.
+- `core.fileMode = false` en `.git/config` silencia `git status` pero **no** soluciona rebase/merge (el sequencer usa `git checkout` que sí chequea el executable bit).
+
+**Fix de raíz:** clonar el repo a filesystem local (`/tmp`) y trabajar ahí para operaciones de rebase/merge entre branches divergentes.
+
+```bash
+# Workaround cuando rebase/merge falla por file mode en /Volumes/M2 Mac/
+mkdir -p /tmp/rest-repo && cd /tmp/rest-repo
+git clone --no-local --no-hardlinks "/Volumes/M2 Mac/proyectos/Restaurante-sistema" repo
+cd repo && git remote set-url origin https://github.com/JuanP-a/restaurante-sistema.git
+git fetch origin '+refs/heads/*:refs/remotes/origin/*' '+refs/pull/*/head:refs/remotes/origin/pr/*'
+# ahora rebase/merge/checkout funcionan normalmente (mode 644 se preserva)
+```
+
+**Fix local (silencia status, NO soluciona rebase):**
+
+```bash
+git config core.fileMode false   # ya aplicado en este repo, pero solo para status
+```
+
+**Diagnóstico rápido:**
+
+```bash
+ls -lOn package.json              # si muestra -rwx------ = bug presente
+git ls-files --debug package.json | grep ctime   # comparar con filesystem
+git diff --stat HEAD              # si hay cambios 0/0, son mode fantasma
+```
+
+Descubierto tras 5+ intentos fallidos de rebasear PRs Dependabot que habían quedado out-of-date. El workaround `/tmp` es feo pero efectivo y tarda 30 segundos. Si te toca, no insistas con chmod ni con `core.fileMode = false` para rebase — saltá directo al clone.
+
 ### Gotcha: variables en `.env*` con Next.js (dotenv-expand)
 
 Next.js expande `$VAR` en valores de `.env*` vía dotenv-expand. Si un valor contiene `$`, Next.js lo trata como referencia a variable y trunca silenciosamente (las vars no definidas se reemplazan por string vacío). **Bug clásico con hashes bcrypt**: `$2b$10$...` se trunca a `b$...`.
