@@ -37,23 +37,19 @@ export type CreateOrderInput = {
 
 export async function nextSequentialNumber(): Promise<number> {
   const db = getDb();
-  const result = await db.execute<{ next: string | number }>(
+  const result = await db.execute<{ next: string }>(
     sql`SELECT nextval('orders_sequential_number_seq') as next`,
   );
-  const rows = (result as unknown as { rows: { next: string | number }[] }).rows;
-  return Number(rows[0]?.next ?? 1);
+  return Number(result.rows[0]?.next ?? 1);
 }
 
 export async function createOrder(input: CreateOrderInput): Promise<Order> {
   const db = getDb();
   return db.transaction(async (tx) => {
-    const result = await tx.execute<{ next: string | number }>(
+    const result = await tx.execute<{ next: string }>(
       sql`SELECT nextval('orders_sequential_number_seq') as next`,
     );
-    const rows = (
-      result as unknown as { rows: { next: string | number }[] }
-    ).rows;
-    const sequentialNumber = Number(rows[0]?.next ?? 1);
+    const sequentialNumber = Number(result.rows[0]?.next ?? 1);
 
     const [order] = await tx
       .insert(orders)

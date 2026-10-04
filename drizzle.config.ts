@@ -5,8 +5,8 @@ loadEnv({ path: ".env.local" });
 loadEnv({ path: ".env" });
 
 export default defineConfig({
-  schema: "./src/schema.ts",
+  schema: "./src/infra/db/schema.ts",
   out: "./drizzle",
   dialect: "postgresql",
-  dbCredentials: { url: process.env.DATABASE_URL ?? "" },
+  dbCredentials: { url: process.env.DATABASE_URL ?? "postgres://localhost:5432/restaurante" },
 });

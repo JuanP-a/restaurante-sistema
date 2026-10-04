@@ -8,10 +8,14 @@ Para el diseño completo, ver [`docs/superpowers/specs/`](docs/superpowers/specs
 
 - Node.js 20+
 - [pnpm](https://pnpm.io) 10+
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) corriendo
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) corriendo — solo si usás `DB_DRIVER=postgres`
 - (opcional) cuenta [360dialog](https://www.360dialog.com) para el bot de WhatsApp en producción
 
 ## Setup local
+
+Hay dos modos de base de datos, elegidos por `DB_DRIVER`:
+
+**Postgres en Docker** (`DB_DRIVER=postgres`, default):
 
 ```bash
 docker compose up -d              # Postgres 16 en localhost:5432
@@ -21,6 +25,17 @@ cp .env.example .env.local        # plantilla lista para dev
 #   ADMIN_PASSWORD_HASH, SESSION_SECRET (ambos requeridos)
 pnpm drizzle:migrate              # aplica migraciones a la DB local
 pnpm dev                          # Next.js en http://localhost:3000
+```
+
+**PGlite embebida** (`DB_DRIVER=pglite`, sin Docker): el adaptador es una Postgres
+compilada a WASM; los datos persisten en `DB_PATH` (default `./.data/pglite`) y
+las migraciones en `MIGRATIONS_PATH` (default `./drizzle`) se aplican en el boot.
+
+```bash
+pnpm install
+cp .env.example .env.local
+# editar .env.local: DB_DRIVER=pglite, ADMIN_PASSWORD_HASH, SESSION_SECRET
+pnpm dev                          # migra y arranca sin servidor de DB
 ```
 
 Generar `ADMIN_PASSWORD_HASH` (bcrypt):
@@ -43,14 +58,20 @@ node -e 'console.log(require("bcryptjs").hashSync("TU-PASSWORD", 10))'
 | `pnpm dev` | Servidor de desarrollo con HMR |
 | `pnpm build` | Build de producción |
 | `pnpm start` | Servidor de producción (después de build) |
-| `pnpm test` | Unit + integration (requiere Docker con Postgres) |
+| `pnpm test` | Unit + integration (PGlite in-memory por default; ver abajo) |
 | `pnpm test:unit` | Solo unit (lo que corre CI) |
-| `pnpm test:integration` | Solo integration contra Postgres local |
+| `pnpm test:integration` | Solo integration; corre contra PGlite in-memory o Postgres |
+| `pnpm test:watch` | Tests en watch mode |
+| `pnpm test:coverage` | Tests con reporte de coverage |
 | `pnpm test:e2e` | E2E con Playwright (requiere dev server + DB) |
 | `pnpm typecheck` | `tsc --noEmit` |
 | `pnpm lint` | ESLint |
 | `pnpm drizzle:generate` | Genera migración SQL desde `schema.ts` |
 | `pnpm drizzle:migrate` | Aplica migraciones pendientes |
+
+> Por default `pnpm test` corre la integración contra **PGlite in-memory** (sin Docker).
+> Para correrla contra un Postgres real: `DB_DRIVER=postgres DATABASE_URL=... pnpm test:integration`.
+> El test de contrato de `createPostgresDb` solo corre en ese modo (si no, se saltea).
 
 ## Rutas
 
@@ -127,7 +148,10 @@ docs/
 
 | Var | Requerida | Default | Para qué |
 |-----|-----------|---------|----------|
-| `DATABASE_URL` | sí | — | Postgres connection string |
+| `DB_DRIVER` | no | `postgres` | Motor de DB: `postgres` o `pglite` (embebida, desktop) |
+| `DATABASE_URL` | solo si `DB_DRIVER=postgres` | — | Postgres connection string (ignorada en pglite) |
+| `DB_PATH` | no | `./.data/pglite` | Directorio de datos de PGlite |
+| `MIGRATIONS_PATH` | no | `./drizzle` | Carpeta de migraciones SQL que aplica PGlite al boot |
 | `ADMIN_PASSWORD_HASH` | sí | — | bcrypt hash de la contraseña del local |
 | `SESSION_SECRET` | sí | — | random ≥32 bytes para firmar cookies |
 | `WHATSAPP_BSP_API_KEY` | prod | — | API key de 360dialog (sin esto, mock) |
