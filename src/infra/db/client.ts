@@ -8,22 +8,39 @@ export type { Db } from "@/infra/db/types";
 declare global {
   // eslint-disable-next-line no-var
   var __db: Db | undefined;
+  // eslint-disable-next-line no-var
+  var __dbInit: Promise<Db> | undefined;
+}
+
+async function createDb(): Promise<Db> {
+  const env = getEnv();
+  if (env.DB_DRIVER === "pglite") {
+    const { createPgliteDb } = await import("@/infra/db/adapters/pglite");
+    const { db } = await createPgliteDb({
+      dataDir: env.DB_PATH,
+      migrationsFolder: env.MIGRATIONS_PATH,
+    });
+    return db;
+  }
+  if (!env.DATABASE_URL) throw new Error("DATABASE_URL requerida para DB_DRIVER=postgres");
+  return createPostgresDb(env.DATABASE_URL).db;
 }
 
 export async function initDb(): Promise<Db> {
   if (globalThis.__db) return globalThis.__db;
-  const env = getEnv();
-  if (env.DB_DRIVER === "pglite") {
-    const { createPgliteDb } = await import("@/infra/db/adapters/pglite");
-    globalThis.__db = await createPgliteDb({
-      dataDir: env.DB_PATH,
-      migrationsFolder: env.MIGRATIONS_PATH,
+  if (!globalThis.__dbInit) {
+    const pending = createDb().then((db) => {
+      globalThis.__db = db;
+      return db;
     });
-  } else {
-    if (!env.DATABASE_URL) throw new Error("DATABASE_URL requerida para DB_DRIVER=postgres");
-    globalThis.__db = createPostgresDb(env.DATABASE_URL);
+    globalThis.__dbInit = pending;
+    // Clear the in-flight slot on failure so a later caller can retry instead
+    // of awaiting a permanently rejected promise.
+    pending.catch(() => {
+      if (globalThis.__dbInit === pending) globalThis.__dbInit = undefined;
+    });
   }
-  return globalThis.__db;
+  return globalThis.__dbInit;
 }
 
 export function getDb(): Db {
