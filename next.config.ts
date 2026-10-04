@@ -6,7 +6,10 @@ const nextConfig: NextConfig = {
   // to the file tracer without an explicit include.
   output: "standalone",
   outputFileTracingIncludes: {
-    "/**": ["./drizzle/**"],
+    // PGlite's WASM/worker assets are resolved at runtime from node_modules,
+    // which the tracer can miss when pnpm's symlinked layout is flattened into
+    // the standalone bundle. Include them explicitly for Fase 4 packaging.
+    "/**": ["./drizzle/**", "./node_modules/@electric-sql/pglite/**"],
   },
   serverExternalPackages: ["@electric-sql/pglite", "pg"],
 };
