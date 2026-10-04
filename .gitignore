@@ -21,6 +21,12 @@
 /.next/
 /out/
 
+# local PGlite data dir (DB_DRIVER=pglite desktop dev)
+/.data/
+
+# agent working artifacts
+/.superpowers/
+
 # production
 /build
 
