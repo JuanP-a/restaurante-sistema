@@ -320,13 +320,29 @@ idle
 
 ```json
 {
-  "categories": [{"name": "Hamburguesas", "products": [...]}],
-  "deliveryZones": [{"name": "Centro", "cost": 15, "colonias": [...]}]
+  "categories": [
+    {
+      "name": "Hamburguesas",
+      "includes": "Lechuga, jitomate, mayonesa, catsup, mostaza y chile jalapeño",
+      "extras": [{"name": "Tocino", "price": "10"}],
+      "optionGroups": [{"name": "Sabor", "selection": "single", "options": ["Búfalo", "BBQ"]}],
+      "products": [{"name": "Sencilla", "basePrice": "55", "description": "Carne, jamón y queso amarillo"}]
+    }
+  ],
+  "deliveryZones": [{"name": "Centro", "cost": 15, "colonias": ["..."]}]
 }
 ```
 
+- Campos opcionales por categoría/producto: `includes` (ingredientes por
+  defecto), `extras` (extras con precio), `optionGroups` (opciones de
+  elección). `basePrice` como string decimal.
+- Menú real del primer cliente transcrito en [`docs/import/lilians-menu.json`](../../../import/lilians-menu.json).
 - Si ya hay datos, pregunta si reemplazar o agregar.
 - Imprime reporte de lo importado (N categorías, N productos, N colonias).
+
+> **Fuera de alcance del import inicial**: UX/UI de personalización (quitar
+> ingredientes, elegir opciones, agregar extras) y carga de zonas de entrega.
+> Ver [`docs/import/README.md`](../../../import/README.md).
 
 ## 7. Endpoints API
 

@@ -1,0 +1,137 @@
+{
+  "categories": [
+    {
+      "name": "Hamburguesas",
+      "includes": "Lechuga, jitomate, mayonesa, catsup, mostaza y chile jalapeño",
+      "extras": [
+        { "name": "Aros de cebolla", "price": "10" },
+        { "name": "Piña", "price": "10" },
+        { "name": "Tocino", "price": "10" },
+        { "name": "Queso", "price": "10" }
+      ],
+      "products": [
+        { "name": "Sencilla", "basePrice": "55", "description": "Carne, jamón y queso amarillo" },
+        { "name": "Hawaiana", "basePrice": "70", "description": "Carne, piña asada, tocino, jamón y queso amarillo" },
+        { "name": "Chipotle", "basePrice": "70", "description": "Carne, piña asada, tocino, salsa chipotle, jamón y queso amarillo" },
+        { "name": "3 Quesos Chipotle-Jalapeño", "basePrice": "70", "description": "Carne, queso asadero, queso panela, queso amarillo, salsa chipotle y jamón" },
+        { "name": "Campirana", "basePrice": "75", "description": "Carne, champiñones salteados en mantequilla, queso asadero, tocino, jamón y queso amarillo" },
+        { "name": "Salchiqueso", "basePrice": "80", "description": "Carne, salchicha, queso asadero, jamón y queso amarillo" },
+        { "name": "Choriqueso", "basePrice": "80", "description": "Carne, chorizo, queso asadero, jamón y queso amarillo" },
+        { "name": "Especial", "basePrice": "80", "description": "Doble carne rellena con queso asadero, tocino, jamón y queso amarillo" },
+        { "name": "Especial Hawaiana", "basePrice": "85", "description": "Doble carne rellena con queso asadero, piña asada, tocino, jamón y queso amarillo" },
+        { "name": "Especial Tocino", "basePrice": "80", "description": "Carne con tiras de tocino, queso asadero, jamón y queso amarillo" },
+        { "name": "Especial Tocino Hawaiana", "basePrice": "85", "description": "Carne con tiras de tocino, piña asada, queso asadero, jamón y queso amarillo" },
+        { "name": "Arrachera", "basePrice": "90", "description": "Arrachera, queso asadero, tocino, jamón y queso amarillo" },
+        { "name": "Arrachera Hawaiana", "basePrice": "95", "description": "Arrachera, queso asadero, piña asada, tocino, jamón y queso amarillo" },
+        { "name": "Pastor", "basePrice": "80", "description": "Pastor, queso asadero, jamón y queso amarillo" },
+        { "name": "Alambre", "basePrice": "80", "description": "Alambre, queso asadero, jamón y queso amarillo" },
+        { "name": "Mega Especial", "basePrice": "95", "description": "Triple carne rellena con extra queso asadero, extra tocino, jamón y queso amarillo" },
+        { "name": "Mega Especial Hawaiana", "basePrice": "100", "description": "Triple carne rellena con extra queso asadero, extra tocino, piña asada, jamón y queso amarillo" },
+        { "name": "Pollo Crujiente", "basePrice": "90", "description": "Natural, BBQ o Picante. Pollo crujiente, queso panela, queso asadero, tocino, jamón y queso amarillo" },
+        { "name": "Camarón", "basePrice": "100", "description": "Camarones con queso asadero gratinado, queso panela, tocino, jamón y queso amarillo" },
+        { "name": "Camarón Hawaiana", "basePrice": "105", "description": "Camarones con queso asadero gratinado, queso panela, piña asada, tocino, jamón y queso amarillo" },
+        { "name": "Mar y Tierra", "basePrice": "110", "description": "Carne, camarones con queso asadero, queso panela, tocino, jamón y queso amarillo" }
+      ]
+    },
+    {
+      "name": "Hot Dogs",
+      "includes": "Jitomate, cebolla, mayonesa, catsup, mostaza y chile jalapeño",
+      "products": [
+        { "name": "Sencillo", "basePrice": "25", "description": "" },
+        { "name": "Con Tocino o Queso", "basePrice": "30", "description": "" },
+        { "name": "Combinado", "basePrice": "40", "description": "" },
+        { "name": "Hawaiano", "basePrice": "45", "description": "Queso fundido, tocino, piña asada en trozos" },
+        { "name": "Choriqueso", "basePrice": "45", "description": "Chorizo con queso asadero y tocino" },
+        { "name": "Campirano", "basePrice": "45", "description": "Champiñones salteados en mantequilla, queso asadero y tocino" },
+        { "name": "Especial", "basePrice": "45", "description": "Tocino, queso asadero, jamón y queso amarillo" }
+      ]
+    },
+    {
+      "name": "Tortas",
+      "includes": "Lechuga, jitomate, aguacate, mayonesa y chile jalapeño",
+      "products": [
+        { "name": "Jamón con Queso", "basePrice": "40", "description": "" },
+        { "name": "Pierna con Queso", "basePrice": "45", "description": "" },
+        { "name": "Salchicha con Queso", "basePrice": "55", "description": "" },
+        { "name": "Chorizo con Queso", "basePrice": "55", "description": "" },
+        { "name": "Huevo (Jamón, Salchicha o Chorizo)", "basePrice": "60", "description": "" },
+        { "name": "Arrachera con Queso", "basePrice": "70", "description": "" },
+        { "name": "Pastor con Queso", "basePrice": "65", "description": "" },
+        { "name": "Alambre con Queso", "basePrice": "65", "description": "" },
+        { "name": "Cubana", "basePrice": "80", "description": "Jamón, salchicha, pierna, chorizo" }
+      ]
+    },
+    {
+      "name": "Quesadillas",
+      "includes": "Lechuga, jitomate y salsa",
+      "products": [
+        { "name": "Jamón con Queso", "basePrice": "25", "description": "" },
+        { "name": "Champiñones con Queso", "basePrice": "25", "description": "" },
+        { "name": "Salchicha / Chorizo / Pierna", "basePrice": "25", "description": "" },
+        { "name": "Arrachera / Pastor / Alambre", "basePrice": "30", "description": "" },
+        { "name": "Camarón con Queso", "basePrice": "35", "description": "" },
+        { "name": "Sincronizadas de Jamón", "basePrice": "45", "description": "" },
+        { "name": "Sincronizadas de Salchicha", "basePrice": "45", "description": "" },
+        { "name": "Sincronizadas de Chorizo", "basePrice": "45", "description": "" },
+        { "name": "Sincronizadas de Pierna", "basePrice": "45", "description": "" },
+        { "name": "Sincronizadas de Arrachera", "basePrice": "55", "description": "" },
+        { "name": "Sincronizadas de Pastor", "basePrice": "55", "description": "" },
+        { "name": "Sincronizadas de Alambre", "basePrice": "55", "description": "" },
+        { "name": "Sincronizadas de Camarón", "basePrice": "65", "description": "" }
+      ]
+    },
+    {
+      "name": "Papas Asadas",
+      "includes": "",
+      "products": [
+        { "name": "A la Mantequilla", "basePrice": "45", "description": "Papa asada, mantequilla, nopal, tortillas y salsa" },
+        { "name": "Con Queso", "basePrice": "50", "description": "Queso asadero, nopal, tortillas y salsa" },
+        { "name": "Choriqueso", "basePrice": "60", "description": "Chorizo, queso asadero, nopal, tortillas y salsa" },
+        { "name": "Arrachera / Pastor / Alambre", "basePrice": "70", "description": "" },
+        { "name": "Camarón", "basePrice": "95", "description": "Camarones, queso asadero, nopal, tortillas y salsa" }
+      ]
+    },
+    {
+      "name": "Alitas",
+      "includes": "Tiras de pepino y apio, aderezo ranch",
+      "optionGroups": [
+        { "name": "Sabor", "selection": "single", "options": ["Búfalo", "BBQ", "Mango Habanero"] }
+      ],
+      "products": [
+        { "name": "Orden con 8 Piezas", "basePrice": "110", "description": "" },
+        { "name": "Orden con 4 Piezas", "basePrice": "55", "description": "" }
+      ]
+    },
+    {
+      "name": "Complementos y Extras",
+      "includes": "",
+      "products": [
+        { "name": "Tiras de Pollo con Papas", "basePrice": "120", "description": "250 gr. pollo crujiente, papas fritas y aderezos" },
+        { "name": "Boneless con Papas", "basePrice": "120", "description": "Orden de boneless crujientes con papas", "optionGroups": [ { "name": "Sabor", "selection": "single", "options": ["Natural", "BBQ", "Búfalo", "Mango Habanero"] } ] },
+        { "name": "Aros de Cebolla Crujientes", "basePrice": "50", "description": "" },
+        { "name": "Papas Gajo Sazonadas", "basePrice": "45", "description": "Con queso parmesano o limón-pimienta" },
+        { "name": "Papas a la Francesa", "basePrice": "45", "description": "Natural o limón-pimienta" },
+        { "name": "Salchipapas", "basePrice": "55", "description": "" },
+        { "name": "Papas con Tocino", "basePrice": "60", "description": "" },
+        { "name": "Papas con Arrachera", "basePrice": "65", "description": "" },
+        { "name": "Refresco de 355 ml", "basePrice": "15", "description": "" }
+      ]
+    },
+    {
+      "name": "Combos",
+      "includes": "",
+      "products": [
+        { "name": "Combo 1", "basePrice": "85", "description": "1 Hamburguesa sencilla + 1 porción de papas + 1 refresco (355 ml)" },
+        { "name": "Combo 2", "basePrice": "95", "description": "1 Hamburguesa hawaiana + 1 porción de papas + 1 refresco (355 ml)" },
+        { "name": "Combo 3", "basePrice": "95", "description": "1 Hamburguesa especial + 1 porción de papas + 1 refresco (355 ml)" },
+        { "name": "Combo 4", "basePrice": "200", "description": "6 Alitas + 2 Hamburguesas sencillas + 1 orden de papas" },
+        { "name": "Combo 5", "basePrice": "200", "description": "3 Hamburguesas sencillas + 1 Hot dog sencillo + 1 orden de papas" },
+        { "name": "Combo 6", "basePrice": "350", "description": "6 Hamburguesas sencillas + 1 orden de papas" },
+        { "name": "Combo 7A", "basePrice": "200", "description": "1 Orden de tiras de pollo con papas + 1 Hamburguesa hawaiana + 1 Hot dog sencillo" },
+        { "name": "Combo 7B", "basePrice": "295", "description": "3 Hamburguesas especiales + 1 Hot dog sencillo + 1 orden de papas" },
+        { "name": "Combo 8", "basePrice": "200", "description": "2 Hamburguesas de arrachera especial + 1 orden de papas" }
+      ]
+    }
+  ],
+  "deliveryZones": []
+}
