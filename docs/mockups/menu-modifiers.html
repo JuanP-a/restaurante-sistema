@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Menú — mockup modificadores</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body {
+        font-family: ui-sans-serif, system-ui, sans-serif;
+      }
+      .toggle-on {
+        background: #16a34a;
+        color: #fff;
+        border-color: #15803d;
+      }
+      .toggle-off {
+        background: #f3f4f6;
+        color: #374151;
+        border-color: #d1d5db;
+      }
+      .extra-on {
+        background: #ea580c;
+        color: #fff;
+        border-color: #c2410c;
+      }
+      .extra-off {
+        background: #fff7ed;
+        color: #9a3412;
+        border-color: #fed7aa;
+      }
+      [data-sheet] {
+        transition: transform 0.25s ease;
+      }
+    </style>
+  </head>
+  <body class="bg-stone-50 text-stone-900 min-h-dvh">
+    <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b">
+      <div
+        class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between"
+      >
+        <h1 class="text-lg font-bold">Menú · Taquería Don Beto</h1>
+        <button
+          onclick="openCart()"
+          class="relative inline-flex items-center gap-2 rounded-full bg-stone-900 text-white px-4 py-2 text-sm font-medium"
+        >
+          <span>Carrito</span>
+          <span
+            id="cart-count"
+            class="rounded-full bg-orange-500 text-white text-xs px-2 py-0.5"
+            >0</span
+          >
+        </button>
+      </div>
+      <nav
+        id="cat-tabs"
+        class="max-w-5xl mx-auto px-4 pb-3 flex gap-2 overflow-x-auto text-sm"
+      ></nav>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-4 py-6">
+      <div class="mb-4 text-sm text-stone-500">
+        Tap un producto para ver extras y modificadores. Los modificadores son
+        botones toggle — sin escribir.
+      </div>
+      <section
+        id="grid"
+        class="grid grid-cols-2 md:grid-cols-3 gap-3"
+      ></section>
+    </main>
+
+    <!-- Sheet modificadores -->
+    <div
+      id="sheet-backdrop"
+      class="fixed inset-0 z-40 hidden bg-black/40"
+      onclick="closeSheet()"
+    ></div>
+    <aside
+      id="sheet"
+      data-sheet
+      class="fixed inset-x-0 bottom-0 z-50 translate-y-full bg-white rounded-t-2xl shadow-2xl max-h-[85dvh] overflow-y-auto"
+    >
+      <div
+        class="sticky top-0 bg-white border-b px-4 py-3 flex items-center justify-between"
+      >
+        <button onclick="closeSheet()" class="text-stone-500 text-sm">
+          ← Cerrar
+        </button>
+        <span class="font-semibold" id="sheet-title">Producto</span>
+        <span class="w-12"></span>
+      </div>
+      <div class="p-4 space-y-6" id="sheet-body"></div>
+      <div
+        class="sticky bottom-0 bg-white border-t p-4 flex items-center justify-between gap-3"
+      >
+        <div>
+          <div class="text-xs text-stone-500">Subtotal</div>
+          <div class="text-2xl font-bold" id="sheet-total">$0.00</div>
+        </div>
+        <button
+          onclick="addToCart()"
+          class="flex-1 bg-orange-600 text-white font-semibold rounded-lg py-3"
+        >
+          Agregar al carrito
+        </button>
+      </div>
+    </aside>
+
+    <!-- Carrito lateral -->
+    <aside
+      id="cart-backdrop"
+      class="fixed inset-0 z-40 hidden bg-black/40"
+      onclick="closeCart()"
+    ></aside>
+    <aside
+      id="cart"
+      data-sheet
+      class="fixed inset-y-0 right-0 z-50 translate-x-full bg-white w-full max-w-md shadow-2xl flex flex-col"
+    >
+      <div class="border-b px-4 py-3 flex items-center justify-between">
+        <h2 class="font-bold">Carrito</h2>
+        <button onclick="closeCart()" class="text-stone-500 text-sm">
+          Cerrar
+        </button>
+      </div>
+      <div id="cart-items" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+      <div class="border-t p-4 space-y-2">
+        <div class="flex justify-between text-sm">
+          <span>Subtotal</span><span id="cart-subtotal">$0.00</span>
+        </div>
+        <div class="flex justify-between text-sm">
+          <span>Envío</span><span id="cart-shipping">$0.00</span>
+        </div>
+        <div class="flex justify-between text-lg font-bold border-t pt-2">
+          <span>Total</span><span id="cart-total">$0.00</span>
+        </div>
+        <button
+          class="w-full bg-stone-900 text-white font-semibold rounded-lg py-3 mt-2"
+        >
+          Crear pedido
+        </button>
+      </div>
+    </aside>
+
+    <script>
+      // ── Data ──────────────────────────────────────────────────────────
+      const categories = [
+        { id: "tacos", name: "Tacos" },
+        { id: "burros", name: "Burritos" },
+        { id: "quesos", name: "Quesadillas" },
+        { id: "bebidas", name: "Bebidas" },
+      ];
+
+      const products = [
+        // TACOS
+        {
+          id: "t-pastor",
+          cat: "tacos",
+          name: "Taco al pastor",
+          price: 25,
+          img: "🌮",
+          color: "from-amber-200 to-orange-300",
+          extras: [
+            { id: "queso", name: "Queso", price: 15 },
+            { id: "aguacate", name: "Aguacate", price: 20 },
+            { id: "doble", name: "Doble tortilla", price: 5 },
+          ],
+          removes: [
+            { id: "cebolla", name: "Cebolla" },
+            { id: "cilantro", name: "Cilantro" },
+            { id: "salsa", name: "Salsa" },
+          ],
+        },
+        {
+          id: "t-asada",
+          cat: "tacos",
+          name: "Taco de asada",
+          price: 28,
+          img: "🥩",
+          color: "from-rose-200 to-red-300",
+          extras: [
+            { id: "queso", name: "Queso", price: 15 },
+            { id: "aguacate", name: "Aguacate", price: 20 },
+            { id: "champi", name: "Champiñones", price: 18 },
+          ],
+          removes: [
+            { id: "cebolla", name: "Cebolla" },
+            { id: "cilantro", name: "Cilantro" },
+          ],
+        },
+        {
+          id: "t-chicken",
+          cat: "tacos",
+          name: "Taco de pollo",
+          price: 25,
+          img: "🍗",
+          color: "from-yellow-200 to-amber-300",
+          extras: [
+            { id: "queso", name: "Queso", price: 15 },
+            { id: "aguacate", name: "Aguacate", price: 20 },
+          ],
+          removes: [
+            { id: "cebolla", name: "Cebolla" },
+            { id: "mayo", name: "Mayonesa" },
+          ],
+        },
+        // BURRITOS
+        {
+          id: "b-pastor",
+          cat: "burros",
+          name: "Burrito pastor",
+          price: 75,
+          img: "🌯",
+          color: "from-orange-200 to-amber-300",
+          extras: [
+            { id: "queso", name: "Queso", price: 20 },
+            { id: "guac", name: "Guacamole", price: 25 },
+            { id: "frijol", name: "Frijol extra", price: 10 },
+          ],
+          removes: [
+            { id: "salsa", name: "Salsa" },
+            { id: "crema", name: "Crema" },
+          ],
+        },
+        {
+          id: "b-veggie",
+          cat: "burros",
+          name: "Burrito vegetariano",
+          price: 65,
+          img: "🥬",
+          color: "from-green-200 to-emerald-300",
+          extras: [
+            { id: "tofu", name: "Tofu", price: 25 },
+            { id: "aguacate", name: "Aguacate", price: 20 },
+          ],
+          removes: [],
+        },
+        // QUESADILLAS
+        {
+          id: "q-queso",
+          cat: "quesos",
+          name: "Quesadilla de queso",
+          price: 55,
+          img: "🧀",
+          color: "from-yellow-200 to-yellow-300",
+          extras: [
+            { id: "hongos", name: "Hongos", price: 18 },
+            { id: "flor", name: "Flor de calabaza", price: 25 },
+          ],
+          removes: [{ id: "cebolla", name: "Cebolla" }],
+        },
+        {
+          id: "q-tinga",
+          cat: "quesos",
+          name: "Quesadilla de tinga",
+          price: 65,
+          img: "🌶️",
+          color: "from-red-200 to-rose-300",
+          extras: [
+            { id: "aguacate", name: "Aguacate", price: 20 },
+            { id: "crema", name: "Crema extra", price: 10 },
+          ],
+          removes: [{ id: "salsa", name: "Salsa verde" }],
+        },
+        // BEBIDAS
+        {
+          id: "refresco",
+          cat: "bebidas",
+          name: "Refresco 600ml",
+          price: 25,
+          img: "🥤",
+          color: "from-red-100 to-red-200",
+          extras: [],
+          removes: [],
+          sizes: [
+            { id: "s-chica", name: "Chica (600ml)", price: 25 },
+            { id: "s-grande", name: "Grande (1.5L)", price: 45 },
+          ],
+        },
+        {
+          id: "agua",
+          cat: "bebidas",
+          name: "Agua de horchata",
+          price: 30,
+          img: "🥛",
+          color: "from-amber-100 to-amber-200",
+          extras: [],
+          removes: [],
+          sizes: [
+            { id: "s-chica", name: "Chica (500ml)", price: 30 },
+            { id: "s-grande", name: "Jarra (1L)", price: 50 },
+          ],
+        },
+      ];
+
+      // ── State ─────────────────────────────────────────────────────────
+      const state = {
+        activeCat: "tacos",
+        sheet: null, // { productId, qty, extraIds:Set, removeIds:Set, sizeId }
+        cart: [], // [{ productId, name, basePrice, qty, extras:[{name,price}], removes:[name], size:{name,priceDelta} }]
+      };
+
+      // ── Render ────────────────────────────────────────────────────────
+      function renderTabs() {
+        document.getElementById("cat-tabs").innerHTML = categories
+          .map(
+            (c) => `
+      <button data-cat="${c.id}" onclick="setCat('${c.id}')"
+        class="${c.id === state.activeCat ? "bg-stone-900 text-white" : "bg-white text-stone-700 border"}
+               rounded-full px-4 py-1.5 text-sm whitespace-nowrap">
+        ${c.name}
+      </button>
+    `,
+          )
+          .join("");
+      }
+
+      function renderGrid() {
+        const items = products.filter((p) => p.cat === state.activeCat);
+        document.getElementById("grid").innerHTML = items
+          .map(
+            (p) => `
+      <button onclick="openSheet('${p.id}')"
+        class="text-left bg-white rounded-xl border overflow-hidden hover:shadow-md transition active:scale-95">
+        <div class="aspect-square bg-gradient-to-br ${p.color} flex items-center justify-center text-6xl">${p.img}</div>
+        <div class="p-3">
+          <div class="font-medium text-sm leading-tight">${p.name}</div>
+          <div class="text-stone-500 text-xs mt-1">desde $${p.price}</div>
+        </div>
+      </button>
+    `,
+          )
+          .join("");
+      }
+
+      function renderSheet() {
+        if (!state.sheet) return;
+        const p = products.find((x) => x.id === state.sheet.productId);
+        document.getElementById("sheet-title").textContent = p.name;
+
+        const sizesHtml =
+          p.sizes && p.sizes.length
+            ? `
+      <section>
+        <h3 class="text-sm font-semibold text-stone-700 mb-2">Tamaño</h3>
+        <div class="grid grid-cols-2 gap-2">
+          ${p.sizes
+            .map(
+              (s) => `
+            <button data-size="${s.id}" onclick="pickSize('${s.id}')"
+              class="${s.id === state.sheet.sizeId ? "extra-on" : "extra-off"}
+                     border rounded-lg px-3 py-2 text-sm">
+              <div class="font-medium">${s.name}</div>
+              <div class="text-xs">+$${s.price}</div>
+            </button>
+          `,
+            )
+            .join("")}
+        </div>
+      </section>
+    `
+            : "";
+
+        const extrasHtml =
+          p.extras && p.extras.length
+            ? `
+      <section>
+        <h3 class="text-sm font-semibold text-stone-700 mb-2">Extras (opcional)</h3>
+        <div class="flex flex-wrap gap-2">
+          ${p.extras
+            .map(
+              (e) => `
+            <button data-extra="${e.id}" onclick="toggleExtra('${e.id}')"
+              class="${state.sheet.extraIds.has(e.id) ? "extra-on" : "extra-off"}
+                     border rounded-full px-3 py-1.5 text-sm">
+              +${e.name} <span class="opacity-70">$${e.price}</span>
+            </button>
+          `,
+            )
+            .join("")}
+        </div>
+      </section>
+    `
+            : "";
+
+        const removesHtml =
+          p.removes && p.removes.length
+            ? `
+      <section>
+        <h3 class="text-sm font-semibold text-stone-700 mb-2">Sin (quitar)</h3>
+        <div class="flex flex-wrap gap-2">
+          ${p.removes
+            .map(
+              (r) => `
+            <button data-remove="${r.id}" onclick="toggleRemove('${r.id}')"
+              class="${state.sheet.removeIds.has(r.id) ? "toggle-on" : "toggle-off"}
+                     border rounded-full px-3 py-1.5 text-sm">
+              ${r.name}
+            </button>
+          `,
+            )
+            .join("")}
+        </div>
+      </section>
+    `
+            : "";
+
+        document.getElementById("sheet-body").innerHTML = `
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-xs text-stone-500">Precio base</div>
+          <div class="text-xl font-bold">$${p.price}</div>
+        </div>
+        <div class="flex items-center gap-3 bg-stone-100 rounded-full px-3 py-1">
+          <button onclick="qtyDelta(-1)" class="text-2xl w-8 h-8">−</button>
+          <span id="sheet-qty" class="font-bold w-6 text-center">${state.sheet.qty}</span>
+          <button onclick="qtyDelta(1)" class="text-2xl w-8 h-8">+</button>
+        </div>
+      </div>
+      ${sizesHtml}
+      ${extrasHtml}
+      ${removesHtml}
+    `;
+
+        updateSheetTotal();
+      }
+
+      function updateSheetTotal() {
+        if (!state.sheet) return;
+        const p = products.find((x) => x.id === state.sheet.productId);
+        const size = p.sizes?.find((s) => s.id === state.sheet.sizeId);
+        const sizePrice = size ? size.price - p.price : 0;
+        const extrasTotal = (p.extras || [])
+          .filter((e) => state.sheet.extraIds.has(e.id))
+          .reduce((s, e) => s + e.price, 0);
+        const unit = p.price + sizePrice + extrasTotal;
+        const total = unit * state.sheet.qty;
+        document.getElementById("sheet-total").textContent =
+          "$" + total.toFixed(2);
+      }
+
+      function renderCart() {
+        const itemsEl = document.getElementById("cart-items");
+        if (state.cart.length === 0) {
+          itemsEl.innerHTML =
+            '<div class="text-stone-400 text-sm text-center py-8">Carrito vacío</div>';
+        } else {
+          itemsEl.innerHTML = state.cart
+            .map((it, i) => {
+              const extrasTxt = it.extras.length
+                ? '<div class="text-xs text-orange-700">+' +
+                  it.extras.map((e) => e.name).join(", ") +
+                  "</div>"
+                : "";
+              const removesTxt = it.removes.length
+                ? '<div class="text-xs text-stone-500">sin ' +
+                  it.removes.join(", ") +
+                  "</div>"
+                : "";
+              const sizeTxt = it.size
+                ? `<div class="text-xs text-stone-500">${it.size.name}</div>`
+                : "";
+              return `
+          <div class="border rounded-lg p-3">
+            <div class="flex justify-between items-start">
+              <div>
+                <div class="font-medium">${it.qty}× ${it.name}</div>
+                ${sizeTxt}
+                ${extrasTxt}
+                ${removesTxt}
+              </div>
+              <div class="text-right">
+                <div class="font-semibold">$${it.lineTotal.toFixed(2)}</div>
+                <button onclick="removeCart(${i})" class="text-xs text-red-600">Quitar</button>
+              </div>
+            </div>
+          </div>
+        `;
+            })
+            .join("");
+        }
+        const subtotal = state.cart.reduce((s, it) => s + it.lineTotal, 0);
+        const shipping = subtotal > 0 ? 25 : 0;
+        document.getElementById("cart-subtotal").textContent =
+          "$" + subtotal.toFixed(2);
+        document.getElementById("cart-shipping").textContent =
+          "$" + shipping.toFixed(2);
+        document.getElementById("cart-total").textContent =
+          "$" + (subtotal + shipping).toFixed(2);
+        document.getElementById("cart-count").textContent = state.cart.reduce(
+          (s, it) => s + it.qty,
+          0,
+        );
+      }
+
+      // ── Actions ───────────────────────────────────────────────────────
+      function setCat(id) {
+        state.activeCat = id;
+        renderTabs();
+        renderGrid();
+      }
+      function qtyDelta(d) {
+        if (!state.sheet) return;
+        state.sheet.qty = Math.max(1, state.sheet.qty + d);
+        renderSheet();
+      }
+
+      function toggleExtra(id) {
+        const s = state.sheet;
+        s.extraIds.has(id) ? s.extraIds.delete(id) : s.extraIds.add(id);
+        renderSheet();
+      }
+      function toggleRemove(id) {
+        const s = state.sheet;
+        s.removeIds.has(id) ? s.removeIds.delete(id) : s.removeIds.add(id);
+        renderSheet();
+      }
+      function pickSize(id) {
+        state.sheet.sizeId = state.sheet.sizeId === id ? null : id;
+        renderSheet();
+      }
+
+      function openSheet(productId) {
+        state.sheet = {
+          productId,
+          qty: 1,
+          extraIds: new Set(),
+          removeIds: new Set(),
+          sizeId: null,
+        };
+        renderSheet();
+        document.getElementById("sheet-backdrop").classList.remove("hidden");
+        document.getElementById("sheet").classList.remove("translate-y-full");
+      }
+      function closeSheet() {
+        document.getElementById("sheet").classList.add("translate-y-full");
+        document.getElementById("sheet-backdrop").classList.add("hidden");
+        state.sheet = null;
+      }
+      function addToCart() {
+        if (!state.sheet) return;
+        const p = products.find((x) => x.id === state.sheet.productId);
+        const size = p.sizes?.find((s) => s.id === state.sheet.sizeId) || null;
+        const extras = (p.extras || []).filter((e) =>
+          state.sheet.extraIds.has(e.id),
+        );
+        const removes = (p.removes || [])
+          .filter((r) => state.sheet.removeIds.has(r.id))
+          .map((r) => r.name);
+        const sizeDelta = size ? size.price - p.price : 0;
+        const extrasSum = extras.reduce((s, e) => s + e.price, 0);
+        const unit = p.price + sizeDelta + extrasSum;
+        state.cart.push({
+          productId: p.id,
+          name: p.name,
+          qty: state.sheet.qty,
+          size,
+          extras,
+          removes,
+          lineTotal: unit * state.sheet.qty,
+        });
+        closeSheet();
+        renderCart();
+      }
+      function removeCart(i) {
+        state.cart.splice(i, 1);
+        renderCart();
+      }
+      function openCart() {
+        document.getElementById("cart-backdrop").classList.remove("hidden");
+        document.getElementById("cart").classList.remove("translate-x-full");
+      }
+      function closeCart() {
+        document.getElementById("cart").classList.add("translate-x-full");
+        document.getElementById("cart-backdrop").classList.add("hidden");
+      }
+
+      // ── Init ──────────────────────────────────────────────────────────
+      renderTabs();
+      renderGrid();
+      renderCart();
+    </script>
+  </body>
+</html>

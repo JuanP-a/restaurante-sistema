@@ -205,11 +205,26 @@ DEFAULT_PREP_TIME_MINUTES=25       # tiempo estimado que se muestra al cliente
 - ✅ **Backend review fixes** (post-MVP hardening): aplicadas las 9 correcciones del backend review en una sola branch (C1-C4 críticas + H1/H2/H6/M2/M4). **9 commits, +20 tests** (145 → **165 verde**). Detalle en PR description.
 - ✅ **Frontend review fixes** (post-MVP hardening): aplicadas las prioridades (server components + src/ui primitives + form a11y) + 4 quick wins del frontend review. **10 commits, 0 tests nuevos** (refactor sin cambio funcional). Detalle en PR description.
 
+### Migración a versión de escritorio (en curso)
+
+Producto con **dos formas de distribuir, un solo código**: versión web/cloud (SaaS futuro) y versión de escritorio para pequeños restaurantes (LAN, Electron, PGlite, pago único + soporte). Estrategia de repo: **monorepo, una sola `main`, GitHub Flow, variantes por carpeta** — ver ADR [`0003`](docs/decisions/0003-estrategia-repositorio-git.md). Diseño y decisiones completas en el [plan maestro](docs/superpowers/plans/2026-10-03-migracion-desktop.md).
+
+- ✅ **Desktop Fase 1** (puerto DB + PGlite embebido): puerto `Db` con adapters `postgres`/`pglite` (`DB_DRIVER`), `initDb`/`getDb` + boot en `src/instrumentation.ts`, migración en boot, suite de integración sobre **PGlite in-memory sin Docker**, secuencia desacoplada del driver, y build que empaqueta `drizzle/` + `@electric-sql/pglite` (`output: "standalone"`). **PR [#19](https://github.com/JuanP-a/restaurante-sistema/pull/19) squash-merged.** Ver ADR [`0002`](docs/decisions/0002-puerto-db-pglite.md). **169 tests verde + 1 skipped** (contrato Postgres opt-in). Retro-compatible: default `DB_DRIVER=postgres`, `render.yaml` intacto.
+- ⬜ **Desktop Fase 2** (impresión ESC/POS server-side): comanda de cocina (sin precios) + cuenta (con precios) a impresora térmica de red `IP:9100`. Sin plan escrito aún.
+- ⬜ **Desktop Fase 3** (backups): `pg_dump` → USB + carpeta sincronizada, programado + manual + restore. Sin plan escrito aún.
+- ⬜ **Desktop Fase 4** (shell Electron): `.exe` Windows, tray, autostart, bind LAN, split a `apps/desktop`. Sin plan escrito aún.
+- ⬜ **Desktop Fase 5** (túnel WhatsApp): Cloudflare Tunnel → webhook a la app local. Sin plan escrito aún.
+- ⬜ **Import de menú** (spec §6.4): `/api/admin/import` + `/admin/import` con formato JSON. Sin plan escrito aún. **Bloquea cargar el menú real del primer cliente.**
+- ⬜ **Modificadores de menú** (rama `feature/modifiers-completion` pausada): core + repo + API de ingredientes hechos; UI y resto pendientes.
+
+> Las fases desktop siguen el flujo: **spec/plan escrito antes de implementar** (regla del proyecto). Cada una entra por su rama corta `feat/*` off `main`.
+
 ### Convenciones de testing (post-Phase 4)
 
-- **`pnpm test`** corre todo (local dev con Docker): unit + integration.
-- **`pnpm test:unit`** corre solo unit (lo que usa CI). Excluye `tests/integration/**`.
-- **`pnpm test:integration`** corre solo integration; requiere Postgres vía `docker compose up -d` y `.env.local` con `DATABASE_URL`/`ADMIN_PASSWORD_HASH`/`SESSION_SECRET`.
+- **`pnpm test`** corre todo (unit + integration) contra **PGlite in-memory por default** (sin Docker, desde Fase 1 desktop).
+- **`pnpm test:unit`** corre solo unit (lo que usa CI). Excluye `tests/integration/**`; no inicializa DB.
+- **`pnpm test:integration`** corre solo integration; por default contra PGlite in-memory. Para parity con Postgres real: `DB_DRIVER=postgres DATABASE_URL=... pnpm test:integration` (requiere `docker compose up -d`).
+- `vitest.setup.ts` inicializa la DB solo cuando el script setea `VITEST_INIT_DB=1` (lo hacen `test` y `test:integration`, no `test:unit`).
 - Integration tests comparten DB; vitest corre con `--no-file-parallelism` para evitar carreras en unique-constraint columns.
 - CI (`verify`) solo corre unit por ahora; integration en CI queda pendiente (service container + provisioning de env vars).
 
