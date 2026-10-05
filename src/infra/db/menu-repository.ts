@@ -1,4 +1,5 @@
 import { asc, eq } from "drizzle-orm";
+import type { MenuImport } from "@/core/menu/types";
 import { getDb } from "@/infra/db/client";
 import {
   categories,
@@ -111,4 +112,75 @@ export async function updateProduct(
 export async function deleteProduct(id: string): Promise<void> {
   const db = getDb();
   await db.delete(products).where(eq(products.id, id));
+}
+
+export type ImportMode = "replace" | "append";
+export type ImportReport = {
+  categories: number;
+  products: number;
+  deferred: { extras: number; optionGroups: number };
+};
+
+export async function importMenu(
+  menu: MenuImport,
+  options: { mode: ImportMode },
+): Promise<ImportReport> {
+  const db = getDb();
+  let categoriesCount = 0;
+  let productsCount = 0;
+  let extrasCount = 0;
+  let optionGroupsCount = 0;
+
+  await db.transaction(async (tx) => {
+    if (options.mode === "replace") {
+      // order_items referencia products; borrar products antes que categories
+      // evita violar la FK de category_id en el camino.
+      await tx.delete(products);
+      await tx.delete(categories);
+    }
+
+    for (let i = 0; i < menu.categories.length; i++) {
+      const category = menu.categories[i];
+      if (!category) continue;
+      const slug = slugify(category.name);
+
+      // append es idempotente por slug: no duplica una categoría existente
+      // (y con ella sus productos). Re-importar el mismo archivo es no-op.
+      if (options.mode === "append") {
+        const [existing] = await tx
+          .select({ id: categories.id })
+          .from(categories)
+          .where(eq(categories.slug, slug));
+        if (existing) continue;
+      }
+
+      const [created] = await tx
+        .insert(categories)
+        .values({ name: category.name, slug, sortOrder: i })
+        .returning();
+      if (!created) throw new Error(`importMenu: categoría ${category.name} no se insertó`);
+      categoriesCount += 1;
+      extrasCount += category.extras.length;
+      optionGroupsCount += category.optionGroups.length;
+
+      for (let j = 0; j < category.products.length; j++) {
+        const product = category.products[j];
+        if (!product) continue;
+        await tx.insert(products).values({
+          categoryId: created.id,
+          name: product.name,
+          basePrice: product.basePrice,
+          description: product.description,
+          sortOrder: j,
+        });
+        productsCount += 1;
+      }
+    }
+  });
+
+  return {
+    categories: categoriesCount,
+    products: productsCount,
+    deferred: { extras: extrasCount, optionGroups: optionGroupsCount },
+  };
 }
