@@ -151,6 +151,26 @@ ADMIN_PASSWORD_HASH="\$2b\$10\$YoEEXhwQhn5gKntCyJDQZ.aNl60oRDzKiRtoLGM6JUkuPXKrU
 
 Si el dev login falla con "Contraseña incorrecta" pero tu password es la correcta, este es el primer lugar a revisar. Diagnóstico rápido: en `src/env.ts` agregar un `console.log` temporal de `source.ADMIN_PASSWORD_HASH` — si el largo no es 60 chars, dotenv-expand está mutilando el valor.
 
+### Mantenimiento: Dependabot y el audit en CI
+
+**Los 2 PRs de Dependabot NO son un bug.** `.github/dependabot.yml` define `groups: { production, development }` → Dependabot abre **un PR por grupo** por diseño. Si se quiere uno solo, unificar los grupos.
+
+**CI corre `pnpm audit --audit-level=high` como parte de `verify`.** Un advisory nuevo sobre una **dep transitiva** (no directa) rompe el audit **en `main`** y bloquea *todo* PR, no solo los de Dependabot. Fix: `pnpm.overrides` pinneando la versión parcheada (ver [ADR 0004](docs/decisions/0004-pnpm-overrides-advisories.md)). Dependabot no cubre transitivas ni overrides — se ataca a mano.
+
+**No usar `gh pr update-branch` sobre una branch de Dependabot.** El merge server-side del `pnpm-lock.yaml` produce `ERR_PNPM_BROKEN_LOCKFILE` (duplicated mapping key) porque Dependabot y `main` ya tienen entradas para el mismo paquete. Pasó el 2026-10-07 con #23/#24.
+
+Orden de reparación:
+
+1. `@dependabot rebase` en el PR (regenera el lock proper). Si no dispara, `@dependabot recreate`.
+2. Si Dependabot cierra el PR ("dependencies are no longer updatable") o no responde, **reemplazar a mano**: aplicar los bumps del PR sobre `main` actual con `pnpm update <pkg>...`, commit, PR propio, y cerrar el de Dependabot referenciando el reemplazo.
+
+**Diagnóstico del audit local:**
+
+```bash
+pnpm audit --audit-level=high        # lo mismo que corre CI
+pnpm why <paquete>                   # de quién cuelga la dep vulnerable
+```
+
 ## Comandos esperados
 
 - `pnpm dev` — dev server
@@ -204,6 +224,7 @@ DEFAULT_PREP_TIME_MINUTES=25       # tiempo estimado que se muestra al cliente
 - ✅ **Phase 9** (Polish + deploy): landing `/` con link a `/login` + `/api/health` (GET `{ok, ts}`) + Playwright E2E config + spec (5 tests: health/landing/middleware/admin-redirect/api-redirect, excluyen login por bcrypt unidireccional) + README completo (setup, comandos, rutas, deploy, vars) + `render.yaml` para deploy one-click vía Blueprint (web service + Postgres, health check `/api/health`). **6 commits, +0 unit/integration tests (5 E2E nuevos en `tests/e2e/`)**, total sigue en **145 tests verde** + 5 E2E.
 - ✅ **Backend review fixes** (post-MVP hardening): aplicadas las 9 correcciones del backend review en una sola branch (C1-C4 críticas + H1/H2/H6/M2/M4). **9 commits, +20 tests** (145 → **165 verde**). Detalle en PR description.
 - ✅ **Frontend review fixes** (post-MVP hardening): aplicadas las prioridades (server components + src/ui primitives + form a11y) + 4 quick wins del frontend review. **10 commits, 0 tests nuevos** (refactor sin cambio funcional). Detalle en PR description.
+- ✅ **Hardening de deps + import de menú** (2026-10-07): import de menú merged (#22) + `pnpm.overrides` para parchear advisories high de transitivas `source-map-js`/`sharp` que rompían el audit en `main` (PR #25, [ADR 0004](docs/decisions/0004-pnpm-overrides-advisories.md)) + bumps de Dependabot (`next` #26, `pg` #27, dev group #28) aplicados a mano porque `gh pr update-branch` rompía el lock de las branches Dependabot. **0 PRs abiertas, audit verde**.
 
 ### Migración a versión de escritorio (en curso)
 
