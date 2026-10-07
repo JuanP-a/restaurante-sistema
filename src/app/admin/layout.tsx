@@ -27,6 +27,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           <Link href="/admin/menu/categories" className="text-gray-700">
             Categorías
           </Link>
+          <Link href="/admin/import" className="text-gray-700">
+            Importar
+          </Link>
           <Link href="/admin/delivery-zones" className="text-gray-700">
             Zonas
           </Link>

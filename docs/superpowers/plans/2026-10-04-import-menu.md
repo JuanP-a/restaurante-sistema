@@ -4,7 +4,7 @@
 
 **Goal:** Cargar el menú real de un cliente (o cualquier menú) desde un JSON versionado vía `/admin/import`, con validación en el core puro y persistencia transaccional, sin romper la DB si el archivo es inválido.
 
-**Architecture:** Tres capas. (1) **Core puro** `src/core/menu/import.ts`: parsea y valida el JSON crudo a un `MenuImport` tipado, sin I/O, devolviendo `Result`. (2) **Adapter** `importMenu()` en `src/infra/db/menu-repository.ts`: en una transacción inserta categorías + productos según `mode` (`replace` | `append`). (3) **Shell** `POST /api/admin/import` + página `/admin/import`. Los campos opcionales (`includes`, `extras`, `optionGroups`) se **parsean y validan** pero **no se persisten todavía** (requieren modelo de modificadores, rama pausada); el reporte los cuenta como diferidos. Fuera de alcance: zonas de entrega, UX de personalización.
+**Architecture:** Tres capas. (1) **Core puro** `src/core/menu/parse-import.ts`: parsea y valida el JSON crudo a un `MenuImport` tipado, sin I/O, devolviendo `Result`. (2) **Adapter** `importMenu()` en `src/infra/db/menu-repository.ts`: en una transacción inserta categorías + productos según `mode` (`replace` | `append`; `append` es idempotente por slug). (3) **Shell** `POST /api/admin/import` + página `/admin/import`. Los campos opcionales (`includes`, `extras`, `optionGroups`) se **parsean y validan** pero **no se persisten todavía** (requieren modelo de modificadores, rama pausada); el reporte los cuenta como diferidos. Fuera de alcance: zonas de entrega, UX de personalización.
 
 **Tech Stack:** Next.js 16, TypeScript estricto, Drizzle ORM, PGlite/Postgres, Vitest, Zod (solo en el borde del handler, opcional).
 
@@ -419,9 +419,21 @@ export async function importMenu(
     for (let i = 0; i < menu.categories.length; i++) {
       const category = menu.categories[i];
       if (!category) continue;
+      const slug = slugify(category.name);
+
+      // append es idempotente por slug: no duplica una categoría existente
+      // (y con ella sus productos). Re-importar el mismo archivo es no-op.
+      if (options.mode === "append") {
+        const [existing] = await tx
+          .select({ id: categories.id })
+          .from(categories)
+          .where(eq(categories.slug, slug));
+        if (existing) continue;
+      }
+
       const [created] = await tx
         .insert(categories)
-        .values({ name: category.name, slug: slugify(category.name), sortOrder: i })
+        .values({ name: category.name, slug, sortOrder: i })
         .returning();
       if (!created) throw new Error(`importMenu: categoría ${category.name} no se insertó`);
       categoriesCount += 1;
@@ -581,15 +593,33 @@ describe("importMenu con el menú real de Lilian's", () => {
     expect(cats.length).toBe(menu.categories.length);
   });
 
-  it("replace limpia lo previo; append acumula", async () => {
+  it("append es idempotente por slug y agrega categorías nuevas", async () => {
     const menu = loadRealMenu();
     await importMenu(menu, { mode: "replace" });
-    const first = await importMenu(menu, { mode: "append" });
+
+    const extra: MenuImport = {
+      categories: [
+        {
+          name: "Bebidas",
+          includes: "",
+          extras: [],
+          optionGroups: [],
+          products: [{ name: "Agua", basePrice: "20", description: "" }],
+        },
+      ],
+    };
+
+    const first = await importMenu(extra, { mode: "append" });
+    expect(first.categories).toBe(1);
+    expect(first.products).toBe(1);
+
+    const second = await importMenu(extra, { mode: "append" });
+    expect(second.categories).toBe(0);
+    expect(second.products).toBe(0);
 
     const db = getDb();
     const cats = await db.select().from(categories);
-    expect(cats.length).toBe(menu.categories.length * 2);
-    expect(first.categories).toBe(menu.categories.length);
+    expect(cats.length).toBe(menu.categories.length + 1);
   });
 
   it("cada producto queda ligado a su categoría", async () => {
