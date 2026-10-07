@@ -207,6 +207,7 @@ DEFAULT_PREP_TIME_MINUTES=25       # tiempo estimado que se muestra al cliente
 3. **Si un cambio es trivial** (bugfix, refactor sin cambio de comportamiento): proceder, pero explicar el "por qué" en el commit.
 4. **Después de cambios significativos**: actualizar este AGENTS.md o el spec si la estructura o convenciones cambiaron.
 5. **Toda decisión con trade-offs** → escribir un ADR en `docs/decisions/NNNN-titulo.md`.
+6. **Todo hallazgo o atajo consciente** → registrar en [`docs/hallazgos.md`](docs/hallazgos.md) (descubrimientos) y/o [`docs/deuda-tecnica.md`](docs/deuda-tecnica.md) (trabajo pendiente). Son registros vivos: no borrar filas resueltas, marcarlas.
 
 ## Estado actual
 
