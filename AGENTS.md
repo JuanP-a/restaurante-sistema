@@ -214,7 +214,7 @@ Producto con **dos formas de distribuir, un solo código**: versión web/cloud (
 - ⬜ **Desktop Fase 3** (backups): `pg_dump` → USB + carpeta sincronizada, programado + manual + restore. Sin plan escrito aún.
 - ⬜ **Desktop Fase 4** (shell Electron): `.exe` Windows, tray, autostart, bind LAN, split a `apps/desktop`. Sin plan escrito aún.
 - ⬜ **Desktop Fase 5** (túnel WhatsApp): Cloudflare Tunnel → webhook a la app local. Sin plan escrito aún.
-- ⬜ **Import de menú** (spec §6.4): `/api/admin/import` + `/admin/import` con formato JSON. Sin plan escrito aún. **Bloquea cargar el menú real del primer cliente.**
+- ✅ **Import de menú** (spec §6.4): core puro `parseMenuImport` (valida el JSON y reporta el `path` del error) + `importMenu` transaccional en `menu-repository` (modos `replace` y `append`, este último idempotente por slug) + `POST /api/admin/import` + página `/admin/import`. Menú real del primer cliente en [`docs/import/lilians-menu.json`](docs/import/lilians-menu.json) (8 categorías, 75 productos). `includes`/`extras`/`optionGroups` se **parsean pero no persisten** (dependen de los modificadores). Plan en [`docs/superpowers/plans/2026-10-04-import-menu.md`](docs/superpowers/plans/2026-10-04-import-menu.md). **183 tests verde + 1 skipped**.
 - ⬜ **Modificadores de menú** (rama `feature/modifiers-completion` pausada): core + repo + API de ingredientes hechos; UI y resto pendientes.
 
 > Las fases desktop siguen el flujo: **spec/plan escrito antes de implementar** (regla del proyecto). Cada una entra por su rama corta `feat/*` off `main`.
