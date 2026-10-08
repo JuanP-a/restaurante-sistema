@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Data = {
   order: {
@@ -23,8 +23,11 @@ export default function KitchenPrint({
 }) {
   const [data, setData] = useState<Data | null>(null);
   const [printed, setPrinted] = useState<string | null>(null);
+  const started = useRef(false);
 
   useEffect(() => {
+    if (started.current) return;
+    started.current = true;
     void params.then(({ id }) => {
       void fetch(`/api/orders/${id}`)
         .then((r) => r.json())
@@ -32,10 +35,16 @@ export default function KitchenPrint({
           setData(d.data);
           return fetch(`/api/orders/${id}/print-kitchen`, { method: "POST" });
         })
-        .then((r) => r.json())
-        .then((res: { printed?: string }) => {
-          setPrinted(res.printed ?? null);
-          if (res.printed === "browser") setTimeout(() => window.print(), 500);
+        .then((r) =>
+          r.json().then((res: { printed?: string }) => ({ ok: r.ok, printed: res.printed })),
+        )
+        .then(({ ok, printed: printedValue }) => {
+          if (!ok) {
+            setPrinted("failed");
+            return;
+          }
+          setPrinted(printedValue ?? null);
+          if (printedValue === "browser") setTimeout(() => window.print(), 500);
         });
     });
   }, [params]);
@@ -49,6 +58,9 @@ export default function KitchenPrint({
       <div className="text-center">PEDIDO #{data.order.sequentialNumber}</div>
       {printed === "server" && (
         <div className="text-center text-xs">Impreso en cocina</div>
+      )}
+      {printed === "failed" && (
+        <div className="text-center text-xs">No se pudo imprimir</div>
       )}
       <div className="text-center text-xs">
         {new Date(data.order.createdAt).toLocaleString()}
