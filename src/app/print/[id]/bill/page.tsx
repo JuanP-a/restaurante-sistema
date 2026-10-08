@@ -32,6 +32,7 @@ export default function BillPrint({
   params: Promise<{ id: string }>;
 }) {
   const [data, setData] = useState<Data | null>(null);
+  const [printed, setPrinted] = useState<string | null>(null);
 
   useEffect(() => {
     void params.then(({ id }) => {
@@ -39,8 +40,12 @@ export default function BillPrint({
         .then((r) => r.json())
         .then((d: { data: Data }) => {
           setData(d.data);
-          void fetch(`/api/orders/${id}/print-bill`, { method: "POST" });
-          setTimeout(() => window.print(), 500);
+          return fetch(`/api/orders/${id}/print-bill`, { method: "POST" });
+        })
+        .then((r) => r.json())
+        .then((res: { printed?: string }) => {
+          setPrinted(res.printed ?? null);
+          if (res.printed === "browser") setTimeout(() => window.print(), 500);
         });
     });
   }, [params]);
@@ -54,6 +59,9 @@ export default function BillPrint({
       <div className="my-2 border-t-2 border-dashed" />
       <div>{data.order.serviceType === "delivery" ? "DOMICILIO" : "LOCAL"}</div>
       <div>PEDIDO #{data.order.sequentialNumber}</div>
+      {printed === "server" && (
+        <div className="text-center text-xs">Impreso en caja</div>
+      )}
       <div className="text-xs">
         {new Date(data.order.createdAt).toLocaleString()}
       </div>

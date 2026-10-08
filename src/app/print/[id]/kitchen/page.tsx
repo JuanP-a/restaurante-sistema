@@ -22,6 +22,7 @@ export default function KitchenPrint({
   params: Promise<{ id: string }>;
 }) {
   const [data, setData] = useState<Data | null>(null);
+  const [printed, setPrinted] = useState<string | null>(null);
 
   useEffect(() => {
     void params.then(({ id }) => {
@@ -29,8 +30,12 @@ export default function KitchenPrint({
         .then((r) => r.json())
         .then((d: { data: Data }) => {
           setData(d.data);
-          void fetch(`/api/orders/${id}/print-kitchen`, { method: "POST" });
-          setTimeout(() => window.print(), 500);
+          return fetch(`/api/orders/${id}/print-kitchen`, { method: "POST" });
+        })
+        .then((r) => r.json())
+        .then((res: { printed?: string }) => {
+          setPrinted(res.printed ?? null);
+          if (res.printed === "browser") setTimeout(() => window.print(), 500);
         });
     });
   }, [params]);
@@ -42,6 +47,9 @@ export default function KitchenPrint({
         {data.order.serviceType === "delivery" ? "DOMICILIO" : "LOCAL"}
       </div>
       <div className="text-center">PEDIDO #{data.order.sequentialNumber}</div>
+      {printed === "server" && (
+        <div className="text-center text-xs">Impreso en cocina</div>
+      )}
       <div className="text-center text-xs">
         {new Date(data.order.createdAt).toLocaleString()}
       </div>
