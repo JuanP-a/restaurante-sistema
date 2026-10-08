@@ -8,7 +8,7 @@ export const serviceTypeEnum = pgEnum("service_type", ["local", "delivery"]);
 export const orderSourceEnum = pgEnum("order_source", ["whatsapp", "staff"]);
 export const ingredientTypeEnum = pgEnum("ingredient_type", ["removable", "extra"]);
 export const eventKindEnum = pgEnum("event_kind", [
-  "created", "status_change", "printed_kitchen", "printed_bill", "notified",
+  "created", "status_change", "printed_kitchen", "printed_bill", "notified", "print_failed",
 ]);
 
 export const categories = pgTable("categories", {
