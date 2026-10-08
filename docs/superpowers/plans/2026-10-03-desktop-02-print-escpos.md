@@ -1335,12 +1335,15 @@ git commit -m "feat(printer): endpoints print-kitchen/bill imprimen server-side 
 
 - [ ] **Step 1: Adjust the kitchen page**
 
-Reemplazar el `useEffect` (líneas 26-36) por:
+Añadir `useRef` al import de React (`import { useEffect, useRef, useState } from "react";`). Reemplazar el `useEffect` por (guard de un solo disparo por el doble-invoke de StrictMode en dev, y manejo del fallo 502 "error al operador"):
 
 ```tsx
   const [printed, setPrinted] = useState<string | null>(null);
+  const started = useRef(false);
 
   useEffect(() => {
+    if (started.current) return;
+    started.current = true;
     void params.then(({ id }) => {
       void fetch(`/api/orders/${id}`)
         .then((r) => r.json())
@@ -1348,31 +1351,43 @@ Reemplazar el `useEffect` (líneas 26-36) por:
           setData(d.data);
           return fetch(`/api/orders/${id}/print-kitchen`, { method: "POST" });
         })
-        .then((r) => r.json())
-        .then((res: { printed?: string }) => {
-          setPrinted(res.printed ?? null);
-          if (res.printed === "browser") setTimeout(() => window.print(), 500);
+        .then((r) =>
+          r.json().then((res: { printed?: string }) => ({ ok: r.ok, printed: res.printed })),
+        )
+        .then(({ ok, printed }) => {
+          if (!ok) {
+            setPrinted("failed");
+            return;
+          }
+          setPrinted(printed ?? null);
+          if (printed === "browser") setTimeout(() => window.print(), 500);
         });
     });
   }, [params]);
 ```
 
-Y añadir, antes del bloque de items (después de la línea del número de pedido), un aviso cuando ya imprimió el servidor:
+Y añadir los avisos tras la línea del número de pedido:
 
 ```tsx
       {printed === "server" && (
         <div className="text-center text-xs">Impreso en cocina</div>
       )}
+      {printed === "failed" && (
+        <div className="text-center text-xs">No se pudo imprimir</div>
+      )}
 ```
 
 - [ ] **Step 2: Adjust the bill page**
 
-Reemplazar el `useEffect` (líneas 36-46) por:
+Añadir `useRef` al import de React. Reemplazar el `useEffect` por la variante con `/print-bill`:
 
 ```tsx
   const [printed, setPrinted] = useState<string | null>(null);
+  const started = useRef(false);
 
   useEffect(() => {
+    if (started.current) return;
+    started.current = true;
     void params.then(({ id }) => {
       void fetch(`/api/orders/${id}`)
         .then((r) => r.json())
@@ -1380,20 +1395,29 @@ Reemplazar el `useEffect` (líneas 36-46) por:
           setData(d.data);
           return fetch(`/api/orders/${id}/print-bill`, { method: "POST" });
         })
-        .then((r) => r.json())
-        .then((res: { printed?: string }) => {
-          setPrinted(res.printed ?? null);
-          if (res.printed === "browser") setTimeout(() => window.print(), 500);
+        .then((r) =>
+          r.json().then((res: { printed?: string }) => ({ ok: r.ok, printed: res.printed })),
+        )
+        .then(({ ok, printed }) => {
+          if (!ok) {
+            setPrinted("failed");
+            return;
+          }
+          setPrinted(printed ?? null);
+          if (printed === "browser") setTimeout(() => window.print(), 500);
         });
     });
   }, [params]);
 ```
 
-Y añadir el aviso análogo:
+Y añadir los avisos análogos:
 
 ```tsx
       {printed === "server" && (
         <div className="text-center text-xs">Impreso en caja</div>
+      )}
+      {printed === "failed" && (
+        <div className="text-center text-xs">No se pudo imprimir</div>
       )}
 ```
 
