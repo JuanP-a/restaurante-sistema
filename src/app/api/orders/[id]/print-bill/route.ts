@@ -1,23 +1,27 @@
-import { NextRequest, NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
-import { getDb } from "@/infra/db/client";
-import { orderEvents, orders } from "@/infra/db/schema";
+import { NextResponse } from "next/server";
+import { getOrder } from "@/infra/db/order-repository";
+import { getEnv } from "@/env";
+import { resolveTransport } from "@/infra/printer/index";
+import { printOrder } from "@/infra/printer/print-service";
 
 export async function POST(
-  _req: NextRequest,
+  _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const db = getDb();
-  const [existing] = await db.select().from(orders).where(eq(orders.id, id));
-  if (!existing) {
+  const data = await getOrder(id);
+  if (!data) {
     return NextResponse.json(
       { ok: false, error: { message: "Pedido no encontrado" } },
       { status: 404 },
     );
   }
-  await db
-    .insert(orderEvents)
-    .values({ orderId: id, kind: "printed_bill", payload: {} });
-  return NextResponse.json({ ok: true });
+  const outcome = await printOrder(data, "bill", resolveTransport(getEnv()));
+  if (outcome.printed === "failed") {
+    return NextResponse.json(
+      { ok: false, error: { message: "No se pudo imprimir la cuenta" } },
+      { status: 502 },
+    );
+  }
+  return NextResponse.json({ ok: true, printed: outcome.printed });
 }
