@@ -31,9 +31,12 @@ Sistema web (PWA) en la nube para gestionar pedidos de un restaurante de comida 
 ```
 /
 ├── docs/
-│   └── superpowers/
-│       └── specs/
-│           └── 2026-09-13-sistema-pedidos-restaurante-design.md
+│   ├── decisions/                    # ADRs (NNNN-titulo.md)
+│   ├── superpowers/
+│   │   ├── specs/                    # diseños aprobados
+│   │   └── plans/                    # planes de implementación
+│   ├── hallazgos.md                  # registro de descubrimientos
+│   └── deuda-tecnica.md              # registro de deuda técnica
 ├── src/
 │   ├── app/                          # Next.js App Router
 │   │   ├── (admin)/                  # Rutas admin (requieren login)
@@ -55,6 +58,16 @@ Sistema web (PWA) en la nube para gestionar pedidos de un restaurante de comida 
     ├── unit/                         # Tests del core puro
     └── integration/                  # Tests de endpoints
 ```
+
+## Documentación: web vs. desktop
+
+La versión web/cloud y la de escritorio **comparten un solo repo, una sola `main` y un solo código** ([ADR 0003](docs/decisions/0003-estrategia-repositorio-git.md)). Por eso la documentación **no se separa por variante** mientras el código no se separe:
+
+- **Compartido en la raíz de `docs/`:** ADRs (`decisions/`), `hallazgos.md`, `deuda-tecnica.md`, master plan desktop y specs/planes cross-cutting.
+- **Fases desktop:** prefijo `desktop-NN-*` en specs y planes (ej. `2026-10-07-desktop-02-print-escpos-design.md`). Las fases web conservan su nombre original.
+- **Cuando el código se parta (Fase 4)** en `apps/web` + `apps/desktop`, espejar en `docs/apps/web/` y `docs/apps/desktop/`, dejando lo cross-cutting en la raíz de `docs/`. Hasta entonces, no adelantar la estructura (YAGNI).
+
+> **Por qué no separar hoy:** separar la doc antes que el código crea divergencia y duplica lo compartido (un cambio de core toca web + desktop y su doc debería ir en un solo PR).
 
 ## Convenciones de código
 
