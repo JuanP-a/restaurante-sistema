@@ -689,20 +689,37 @@ import { createTcpTransport } from "./tcp";
 
 describe("createTcpTransport", () => {
   const servers: net.Server[] = [];
+  const sockets: net.Socket[] = [];
 
   afterEach(async () => {
+    for (const socket of sockets.splice(0)) socket.destroy();
     await Promise.all(
       servers.splice(0).map((server) => new Promise<void>((resolve) => server.close(() => resolve()))),
     );
   });
 
+  function trackServer(server: net.Server): void {
+    servers.push(server);
+    server.on("connection", (socket) => sockets.push(socket));
+  }
+
   async function startServer(onData: (chunk: Buffer) => void): Promise<number> {
     const server = net.createServer((socket) => socket.on("data", onData));
-    servers.push(server);
+    trackServer(server);
     await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("sin puerto asignado");
     return address.port;
+  }
+
+  // El transporte resuelve al terminar de enviar (no al cerrar el peer), así que
+  // los bytes pueden llegar al servidor uno o dos ticks después. Esperamos la
+  // recepción para que la aserción no dependa del scheduling del event loop.
+  async function waitForBytes(received: Buffer[]): Promise<void> {
+    const deadline = Date.now() + 1000;
+    while (received.length === 0 && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    }
   }
 
   test("envía los bytes a la impresora de red", async () => {
@@ -712,6 +729,7 @@ describe("createTcpTransport", () => {
 
     const result = await transport.send(Uint8Array.from([0x1b, 0x40, 0x41]));
 
+    await waitForBytes(received);
     expect(result.ok).toBe(true);
     expect(Buffer.concat(received)).toEqual(Buffer.from([0x1b, 0x40, 0x41]));
   });
@@ -720,6 +738,24 @@ describe("createTcpTransport", () => {
     const transport = createTcpTransport({ host: "127.0.0.1", port: 1, timeoutMs: 500 });
     const result = await transport.send(Uint8Array.from([0x00]));
     expect(result.ok).toBe(false);
+  });
+
+  test("resuelve ok aunque la impresora no cierre la conexión", async () => {
+    const received: Buffer[] = [];
+    const server = net.createServer({ allowHalfOpen: true }, (socket) => {
+      socket.on("data", (chunk: Buffer) => received.push(chunk));
+    });
+    trackServer(server);
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("sin puerto asignado");
+    const transport = createTcpTransport({ host: "127.0.0.1", port: address.port, timeoutMs: 500 });
+
+    const result = await transport.send(Uint8Array.from([0x1b, 0x40]));
+
+    await waitForBytes(received);
+    expect(result.ok).toBe(true);
+    expect(Buffer.concat(received)).toEqual(Buffer.from([0x1b, 0x40]));
   });
 });
 ```
@@ -748,6 +784,7 @@ export function createTcpTransport(options: {
       return new Promise((resolve) => {
         const socket = net.createConnection({ host: options.host, port: options.port });
         let settled = false;
+        let connected = false;
         const finish = (result: Result<void, PrintError>) => {
           if (settled) return;
           settled = true;
@@ -756,14 +793,16 @@ export function createTcpTransport(options: {
         };
         socket.setTimeout(timeoutMs);
         socket.once("timeout", () => finish(err({ kind: "timeout" })));
-        socket.once("error", (error: Error) => finish(err({ kind: "connection", message: error.message })));
+        socket.once("error", (error: Error) =>
+          finish(connected ? err({ kind: "io", message: error.message }) : err({ kind: "connection", message: error.message })),
+        );
         socket.once("connect", () => {
-          socket.write(Buffer.from(bytes), (writeError) => {
-            if (writeError) finish(err({ kind: "io", message: writeError.message }));
-            else socket.end();
-          });
+          connected = true;
+          // Resolver al terminar de enviar (no esperar el FIN del peer): si la
+          // impresora deja la conexión abierta, esperar "close" daría timeout
+          // espurio -> reintento -> ticket duplicado.
+          socket.end(Buffer.from(bytes), () => finish(ok(undefined)));
         });
-        socket.once("close", () => finish(ok(undefined)));
       });
     },
   };
