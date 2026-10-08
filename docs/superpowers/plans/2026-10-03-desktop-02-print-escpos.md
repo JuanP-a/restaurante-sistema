@@ -832,8 +832,8 @@ git commit -m "feat(printer): adapter TCP a impresora de red IP:9100"
 - Test: `src/infra/printer/resolve-transport.test.ts`
 
 **Interfaces:**
-- Consumes: `getEnv` de `@/env`, `createTcpTransport` (Task 6), `PrintTransport` (Task 5).
-- Produces: `resolveTransport(): PrintTransport | null` — `null` si `PRINTER_HOST` vacío; si no, transport TCP a `PRINTER_HOST:PRINTER_PORT`.
+- Consumes: `createTcpTransport` (Task 6), `PrintTransport` (Task 5), tipo `Env` de `@/env`.
+- Produces: `resolveTransport(env: Pick<Env, "PRINTER_HOST" | "PRINTER_PORT">): PrintTransport | null` — `null` si `PRINTER_HOST` vacío; si no, transport TCP a `PRINTER_HOST:PRINTER_PORT`. Recibe el env por parámetro (no lee `getEnv()` adentro) para ser puro y testeable sin variables de entorno.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -844,12 +844,12 @@ import { resolveTransport } from "./index";
 
 describe("resolveTransport", () => {
   test("devuelve null sin PRINTER_HOST (fallback al navegador)", () => {
-    expect(resolveTransport()).toBeNull();
+    expect(resolveTransport({ PRINTER_HOST: "", PRINTER_PORT: 9100 })).toBeNull();
   });
 });
 ```
 
-> **Nota:** el test asume que el proceso de test no define `PRINTER_HOST`. No se prueba la rama TCP acá para no pelear con el cacheo de `getEnv`; esa rama la cubre el adapter TCP (Task 6) y el servicio (Task 8).
+> **Nota:** el env se inyecta, así que el test no depende de `getEnv()` ni de `.env.local` (CI corre unit sin variables de entorno). La rama TCP la cubre el adapter (Task 6) y el servicio (Task 8).
 
 - [ ] **Step 2: Run test to verify it fails**
 
@@ -869,12 +869,13 @@ En `src/env.ts`, dentro del objeto, después de `MIGRATIONS_PATH`:
 
 ```ts
 // src/infra/printer/index.ts
-import { getEnv } from "@/env";
+import type { Env } from "@/env";
 import { createTcpTransport } from "./tcp";
 import type { PrintTransport } from "./transport";
 
-export function resolveTransport(): PrintTransport | null {
-  const env = getEnv();
+export function resolveTransport(
+  env: Pick<Env, "PRINTER_HOST" | "PRINTER_PORT">,
+): PrintTransport | null {
   if (!env.PRINTER_HOST) return null;
   return createTcpTransport({ host: env.PRINTER_HOST, port: env.PRINTER_PORT });
 }
@@ -1251,6 +1252,7 @@ Expected: FAIL — el `POST` actual no lee el pedido; devuelve 200 para id inexi
 // src/app/api/orders/[id]/print-kitchen/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getOrder } from "@/infra/db/order-repository";
+import { getEnv } from "@/env";
 import { resolveTransport } from "@/infra/printer/index";
 import { printOrder } from "@/infra/printer/print-service";
 
@@ -1266,7 +1268,7 @@ export async function POST(
       { status: 404 },
     );
   }
-  const outcome = await printOrder(data, "kitchen", resolveTransport());
+  const outcome = await printOrder(data, "kitchen", resolveTransport(getEnv()));
   if (outcome.printed === "failed") {
     return NextResponse.json(
       { ok: false, error: { message: "No se pudo imprimir la comanda" } },
@@ -1281,6 +1283,7 @@ export async function POST(
 // src/app/api/orders/[id]/print-bill/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getOrder } from "@/infra/db/order-repository";
+import { getEnv } from "@/env";
 import { resolveTransport } from "@/infra/printer/index";
 import { printOrder } from "@/infra/printer/print-service";
 
@@ -1296,7 +1299,7 @@ export async function POST(
       { status: 404 },
     );
   }
-  const outcome = await printOrder(data, "bill", resolveTransport());
+  const outcome = await printOrder(data, "bill", resolveTransport(getEnv()));
   if (outcome.printed === "failed") {
     return NextResponse.json(
       { ok: false, error: { message: "No se pudo imprimir la cuenta" } },
