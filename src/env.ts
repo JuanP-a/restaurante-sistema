@@ -6,6 +6,8 @@ const envSchema = z
     DATABASE_URL: z.string().url().optional(),
     DB_PATH: z.string().default("./.data/pglite"),
     MIGRATIONS_PATH: z.string().default("./drizzle"),
+    BACKUP_DIR: z.string().default("./.data/backups"),
+    BACKUP_KEEP: z.coerce.number().int().min(1).default(7),
     PRINTER_HOST: z.string().default(""),
     PRINTER_PORT: z.coerce.number().int().min(1).max(65535).default(9100),
     ADMIN_PASSWORD_HASH: z.string().regex(/^\$2[aby]\$10\$.+/, "debe ser hash bcrypt"),

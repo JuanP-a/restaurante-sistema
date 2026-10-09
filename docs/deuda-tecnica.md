@@ -29,6 +29,7 @@
 | DT-015 | Desktop | Fases desktop sin plan escrito (regla: plan antes de código) | Media | M | En progreso | Plan maestro |
 | DT-016 | Testing | Anti-doble-impresión en `/print/...` sin test automático (solo typecheck) | Media | S | Abierta | Fase 2 |
 | DT-017 | API | `id` malformado (no-UUID) en rutas de pedido → 500 en vez de 404 | Baja | S | Abierta | Fase 2 |
+| DT-018 | Deps | `drivelist` (addon nativo) sin bindings: pnpm ignora su build script | Media | S | Abierta | Fase 3 backup |
 | DT-002 | Tooling | `pnpm db:seed` documentado pero inexistente | Baja | S | Abierta | [H-009](hallazgos.md) |
 | DT-010 | Tooling | Grupos de Dependabot abren 2 PRs/semana; podrían unificarse | Baja | S | Aceptada | [H-005](hallazgos.md) |
 | DT-012 | Entorno | Workarounds macOS (file mode / shadow files) en volumen externo | Baja | — | Aceptada | [H-002](hallazgos.md) / [H-003](hallazgos.md) |
@@ -96,6 +97,13 @@
 - **Qué:** `getOrder(id)` con un id no-UUID llega a Postgres y explota con `invalid input syntax for type uuid` → 500 en vez de 404. Pre-existente, aplica a todas las rutas de pedido (no solo impresión).
 - **Fix propuesto:** validar/parsear el id en el borde (`src/infra/db/order-repository.ts` o el handler) antes de tocar la DB.
 - **Criterio de cierre:** id no-UUID → 404.
+
+### DT-018 — `drivelist` sin bindings nativos
+
+- **Qué:** al instalar `drivelist` con `pnpm add`, pnpm 10 **ignora su build script** (`prebuild-install`) por defecto. Resultado: `require("drivelist")` falla con `Could not locate the bindings file`.
+- **Por qué importa:** la detección de USB de la Fase 3 (backups) depende de `drivelist` en runtime. El código lo importa de forma **lazy** y tolera su ausencia, pero sin bindings no habrá detección de unidades extraíbles.
+- **Fix propuesto:** `pnpm approve-builds` (o añadir `drivelist` a `pnpm.onlyBuiltDependencies` en `package.json`) para permitir el postinstall; verificar el `.exe`/binario por plataforma al empaquetar Electron (Fase 4).
+- **Criterio de cierre:** `require("drivelist")` carga en la plataforma de desarrollo y el binario viaja en el build de escritorio.
 
 ### DT-010 / DT-012 / DT-013 / DT-014 — Aceptadas
 
