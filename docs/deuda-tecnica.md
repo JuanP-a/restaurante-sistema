@@ -29,6 +29,10 @@
 | DT-015 | Desktop | Fases desktop sin plan escrito (regla: plan antes de código) | Media | M | En progreso | Plan maestro |
 | DT-016 | Testing | Anti-doble-impresión en `/print/...` sin test automático (solo typecheck) | Media | S | Abierta | Fase 2 |
 | DT-017 | API | `id` malformado (no-UUID) en rutas de pedido → 500 en vez de 404 | Baja | S | Abierta | Fase 2 |
+| DT-018 | Deps | `drivelist` (addon nativo) sin bindings: pnpm ignora su build script | Media | S | Abierta | Fase 3 backup |
+| DT-019 | Deps | `pglite-tools` fija el peer de PGlite en versión exacta: subir ambos en lockstep | Media | S | Abierta | [H-014](hallazgos.md) |
+| DT-020 | Desktop | El swap en vivo de la DB (restaurar reemplazando el `dataDir`) no está implementado | Media | M | Abierta | Fase 3 backup |
+| DT-021 | Desktop | El backup no está serializado contra las queries de la app (PGlite single-connection) | Baja | S | Abierta | [H-001](hallazgos.md) |
 | DT-002 | Tooling | `pnpm db:seed` documentado pero inexistente | Baja | S | Abierta | [H-009](hallazgos.md) |
 | DT-010 | Tooling | Grupos de Dependabot abren 2 PRs/semana; podrían unificarse | Baja | S | Aceptada | [H-005](hallazgos.md) |
 | DT-012 | Entorno | Workarounds macOS (file mode / shadow files) en volumen externo | Baja | — | Aceptada | [H-002](hallazgos.md) / [H-003](hallazgos.md) |
@@ -96,6 +100,34 @@
 - **Qué:** `getOrder(id)` con un id no-UUID llega a Postgres y explota con `invalid input syntax for type uuid` → 500 en vez de 404. Pre-existente, aplica a todas las rutas de pedido (no solo impresión).
 - **Fix propuesto:** validar/parsear el id en el borde (`src/infra/db/order-repository.ts` o el handler) antes de tocar la DB.
 - **Criterio de cierre:** id no-UUID → 404.
+
+### DT-018 — `drivelist` sin bindings nativos
+
+- **Qué:** al instalar `drivelist` con `pnpm add`, pnpm 10 **ignora su build script** (`prebuild-install`) por defecto. Resultado: `require("drivelist")` falla con `Could not locate the bindings file`.
+- **Por qué importa:** la detección de USB de la Fase 3 (backups) depende de `drivelist` en runtime. El código lo importa de forma **lazy** y tolera su ausencia, pero sin bindings no habrá detección de unidades extraíbles.
+- **Fix propuesto:** `pnpm approve-builds` (o añadir `drivelist` a `pnpm.onlyBuiltDependencies` en `package.json`) para permitir el postinstall; verificar el `.exe`/binario por plataforma al empaquetar Electron (Fase 4).
+- **Criterio de cierre:** `require("drivelist")` carga en la plataforma de desarrollo y el binario viaja en el build de escritorio.
+
+### DT-019 — `pglite-tools` fija el peer de PGlite en versión exacta
+
+- **Qué:** `@electric-sql/pglite-tools@0.4.8` declara `peerDependencies: { "@electric-sql/pglite": "0.5.8" }` (pin exacto, no rango).
+- **Por qué importa:** el `pgDump` del backup vive en tools; subir PGlite sin tools (o al revés) rompe la instalación.
+- **Fix propuesto:** subir `@electric-sql/pglite` y `@electric-sql/pglite-tools` en lockstep; añadir nota en el plan de Fase 3.
+- **Criterio de cierre:** ningún bump de PGlite sin el de tools (ideal: Dependabot agrupado o un test que detecte el mismatch).
+
+### DT-020 — El swap en vivo de la DB no está implementado
+
+- **Qué:** Fase 3 solo **valida** que un dump es restaurable (`verifyBackup` sobre una PGlite temporal). Restaurar de verdad — reemplazar el `dataDir` con el dump — no existe.
+- **Por qué importa:** el operador puede validar un backup pero no restaurarlo desde la app.
+- **Fix propuesto:** Fase 4 (Electron puede reiniciar el server y reapuntar `DB_PATH`).
+- **Criterio de cierre:** endpoint/flujo de restore que reemplaza el `dataDir` de forma segura.
+
+### DT-021 — El backup no está serializado contra las queries de la app
+
+- **Qué:** PGlite es single-connection; `pgDump` corre sobre esa misma conexión mientras la app puede estar consultando.
+- **Por qué importa:** un backup concurrente podría interferir con prepared statements vivos.
+- **Fix propuesto:** serializar backup vs. queries de la app si se agrega schedule (Fase 4). Fase 3 lo dispara manual, sin concurrencia real.
+- **Criterio de cierre:** backup manual concurrente con la app no genera errores.
 
 ### DT-010 / DT-012 / DT-013 / DT-014 — Aceptadas
 

@@ -2,6 +2,7 @@ import type { PgDatabase } from "drizzle-orm/pg-core";
 import type { NodePgQueryResultHKT } from "drizzle-orm/node-postgres";
 import type { PgliteQueryResultHKT } from "drizzle-orm/pglite";
 import type * as schema from "@/infra/db/schema";
+import type { BackupSource } from "@/infra/backup/port";
 
 // Base Postgres type: both NodePgDatabase and PgliteDatabase satisfy it.
 // The HKT is a union of both concrete result kinds so `db.execute<T>().rows`
@@ -14,4 +15,5 @@ export type Db = PgDatabase<NodePgQueryResultHKT | PgliteQueryResultHKT, typeof 
 export type DbHandle = {
   db: Db;
   close: () => Promise<void>;
+  backupSource?: BackupSource;
 };
