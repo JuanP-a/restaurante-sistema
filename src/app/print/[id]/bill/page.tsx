@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Data = {
   order: {
@@ -32,15 +32,29 @@ export default function BillPrint({
   params: Promise<{ id: string }>;
 }) {
   const [data, setData] = useState<Data | null>(null);
+  const [printed, setPrinted] = useState<string | null>(null);
+  const started = useRef(false);
 
   useEffect(() => {
+    if (started.current) return;
+    started.current = true;
     void params.then(({ id }) => {
       void fetch(`/api/orders/${id}`)
         .then((r) => r.json())
         .then((d: { data: Data }) => {
           setData(d.data);
-          void fetch(`/api/orders/${id}/print-bill`, { method: "POST" });
-          setTimeout(() => window.print(), 500);
+          return fetch(`/api/orders/${id}/print-bill`, { method: "POST" });
+        })
+        .then((r) =>
+          r.json().then((res: { printed?: string }) => ({ ok: r.ok, printed: res.printed })),
+        )
+        .then(({ ok, printed: printedValue }) => {
+          if (!ok) {
+            setPrinted("failed");
+            return;
+          }
+          setPrinted(printedValue ?? null);
+          if (printedValue === "browser") setTimeout(() => window.print(), 500);
         });
     });
   }, [params]);
@@ -54,6 +68,12 @@ export default function BillPrint({
       <div className="my-2 border-t-2 border-dashed" />
       <div>{data.order.serviceType === "delivery" ? "DOMICILIO" : "LOCAL"}</div>
       <div>PEDIDO #{data.order.sequentialNumber}</div>
+      {printed === "server" && (
+        <div className="text-center text-xs">Impreso en caja</div>
+      )}
+      {printed === "failed" && (
+        <div className="text-center text-xs">No se pudo imprimir</div>
+      )}
       <div className="text-xs">
         {new Date(data.order.createdAt).toLocaleString()}
       </div>

@@ -1,6 +1,6 @@
 {
-  "id": "8e6a0033-7755-71c2-8595-842cb15feeae",
-  "prevId": "39efbb37-e34f-44c4-a165-d0135005739e",
+  "id": "056f4b17-8a5c-4a63-8622-40daaf92d25b",
+  "prevId": "8e6a0033-7755-71c2-8595-842cb15feeae",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -869,7 +869,8 @@
         "status_change",
         "printed_kitchen",
         "printed_bill",
-        "notified"
+        "notified",
+        "print_failed"
       ]
     },
     "public.ingredient_type": {

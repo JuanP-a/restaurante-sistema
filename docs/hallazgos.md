@@ -16,6 +16,8 @@
 
 | ID | Fecha | Hallazgo | Impacto | Documentado en |
 |----|-------|----------|---------|----------------|
+| H-011 | 2026-10-07 | `drizzle-kit generate` lee los `._*` de `drizzle/meta` y crashea (JSON inválido) | Alto | [H-002](#h-002--volumen-externo-macos-shadow-files-) |
+| H-010 | 2026-10-07 | `drizzle/meta/0001_snapshot.json` duplicado (mismo id/prevId) rompía `drizzle-kit generate` | Alto | commit `0888535` |
 | H-009 | 2026-10-07 | `AGENTS.md` documenta `pnpm lint` y `pnpm db:seed` que no existen | Medio | [DT-001](deuda-tecnica.md), [DT-002](deuda-tecnica.md) |
 | H-008 | 2026-10-07 | CI solo corre tests **unit**; integration queda fuera | Medio | [DT-003](deuda-tecnica.md) |
 | H-007 | 2026-10-07 | Advisories de deps **transitivas** rompen el audit en `main` y bloquean todo PR | Alto | [ADR 0004](../decisions/0004-pnpm-overrides-advisories.md), `AGENTS.md` |
@@ -29,6 +31,20 @@
 ---
 
 ## Detalle
+
+### H-011 — `drizzle-kit` crashea con los shadow files `._*`
+
+- **Qué esperábamos:** `pnpm drizzle:generate` solo lee `drizzle/meta/*_snapshot.json` y `_journal.json`.
+- **Qué pasó:** el volumen externo macOS dejó `drizzle/meta/._0001_snapshot.json` (AppleDouble); drizzle-kit hace glob de `drizzle/meta/*.json` e intenta `JSON.parse` del binario → `SyntaxError: Unexpected token ' ', "Ma"...` (la firma "Mac OS X").
+- **Por qué importa:** cualquier `drizzle:generate` falla mientras haya un `._*` en `drizzle/meta`. Es la misma clase que [H-002](#h-002--volumen-externo-macos-shadow-files-), pero golpea una herramienta distinta.
+- **Fix:** `find drizzle -name '._*' -delete` antes de generar. **Extender la limpieza pre-build de AGENTS.md a `drizzle/`.**
+
+### H-010 — Snapshot duplicado rompía `drizzle-kit generate`
+
+- **Qué esperábamos:** `drizzle:generate` generaría la migración del enum sin drama.
+- **Qué pasó:** `drizzle/meta/0001_snapshot.json` era copia **byte-idéntica** de `0000_snapshot.json` (mismo `id` y `prevId`), de cuando se agregó a mano la migración `0001_orders_sequential_number_seq.sql`. drizzle-kit abortaba: `... are pointing to a parent snapshot ... which is a collision`.
+- **Fix:** asignar `id` único a 0001 y `prevId` = id de 0000 (el contenido del snapshot queda igual, porque la secuencia no está en `schema.ts`). Commit `0888535`.
+- **Por qué importa:** bloqueaba **toda** generación de migraciones futuras; no era del cambio en curso.
 
 ### H-009 — Documentación drift: comandos inexistentes
 

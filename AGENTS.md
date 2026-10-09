@@ -211,6 +211,8 @@ BUSINESS_NAME=                     # para encabezados de tickets
 BUSINESS_ADDRESS=                  # idem
 BUSINESS_PHONE=                    # idem
 DEFAULT_PREP_TIME_MINUTES=25       # tiempo estimado que se muestra al cliente
+PRINTER_HOST=                      # IP de la térmica de red (vacío = imprime el navegador)
+PRINTER_PORT=9100                  # puerto raw ESC/POS
 ```
 
 ## Cómo se trabaja en este proyecto
@@ -245,7 +247,7 @@ DEFAULT_PREP_TIME_MINUTES=25       # tiempo estimado que se muestra al cliente
 Producto con **dos formas de distribuir, un solo código**: versión web/cloud (SaaS futuro) y versión de escritorio para pequeños restaurantes (LAN, Electron, PGlite, pago único + soporte). Estrategia de repo: **monorepo, una sola `main`, GitHub Flow, variantes por carpeta** — ver ADR [`0003`](docs/decisions/0003-estrategia-repositorio-git.md). Diseño y decisiones completas en el [plan maestro](docs/superpowers/plans/2026-10-03-migracion-desktop.md).
 
 - ✅ **Desktop Fase 1** (puerto DB + PGlite embebido): puerto `Db` con adapters `postgres`/`pglite` (`DB_DRIVER`), `initDb`/`getDb` + boot en `src/instrumentation.ts`, migración en boot, suite de integración sobre **PGlite in-memory sin Docker**, secuencia desacoplada del driver, y build que empaqueta `drizzle/` + `@electric-sql/pglite` (`output: "standalone"`). **PR [#19](https://github.com/JuanP-a/restaurante-sistema/pull/19) squash-merged.** Ver ADR [`0002`](docs/decisions/0002-puerto-db-pglite.md). **169 tests verde + 1 skipped** (contrato Postgres opt-in). Retro-compatible: default `DB_DRIVER=postgres`, `render.yaml` intacto.
-- ⬜ **Desktop Fase 2** (impresión ESC/POS server-side): comanda de cocina (sin precios) + cuenta (con precios) a impresora térmica de red `IP:9100`. Sin plan escrito aún.
+- ✅ **Desktop Fase 2** (impresión ESC/POS server-side): renderer puro en `src/core/printing/` (CP850 + comandos ESC/POS + tickets 48 cols) + puerto `PrintTransport` con adapters `tcp`/`fake` + `print-service` (reintentos 3× con backoff + eventos `printed_kitchen`/`printed_bill`/`print_failed`) + endpoints `print-kitchen`/`print-bill` con auto-detect por `PRINTER_HOST` (server-side vs fallback al navegador) + anti-doble-impresión en `/print/...`. Migración `event_kind += print_failed`. **210 tests verde + 1 skipped**. Spec [`2026-10-07-desktop-02-print-escpos-design.md`](docs/superpowers/specs/2026-10-07-desktop-02-print-escpos-design.md), plan [`2026-10-03-desktop-02-print-escpos.md`](docs/superpowers/plans/2026-10-03-desktop-02-print-escpos.md).
 - ⬜ **Desktop Fase 3** (backups): `pg_dump` → USB + carpeta sincronizada, programado + manual + restore. Sin plan escrito aún.
 - ⬜ **Desktop Fase 4** (shell Electron): `.exe` Windows, tray, autostart, bind LAN, split a `apps/desktop`. Sin plan escrito aún.
 - ⬜ **Desktop Fase 5** (túnel WhatsApp): Cloudflare Tunnel → webhook a la app local. Sin plan escrito aún.

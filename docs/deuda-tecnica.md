@@ -26,7 +26,9 @@
 | DT-007 | Seguridad | 1 advisory **moderate** residual (bajo el umbral `high`) | Baja | S | Abierta | [H-007](hallazgos.md) |
 | DT-008 | Desktop | Verificar que `drizzle/` + WASM PGlite viajan en el bundle standalone | Media | S | Abierta | Fase 4 |
 | DT-011 | Desktop | Cookie `secure` en HTTP intranet rompe login | Media | S | Abierta | Plan desktop R6 |
-| DT-015 | Desktop | Fases 2–5 sin plan escrito (regla del proyecto: plan antes de código) | Media | M | Abierta | Plan maestro |
+| DT-015 | Desktop | Fases desktop sin plan escrito (regla: plan antes de código) | Media | M | En progreso | Plan maestro |
+| DT-016 | Testing | Anti-doble-impresión en `/print/...` sin test automático (solo typecheck) | Media | S | Abierta | Fase 2 |
+| DT-017 | API | `id` malformado (no-UUID) en rutas de pedido → 500 en vez de 404 | Baja | S | Abierta | Fase 2 |
 | DT-002 | Tooling | `pnpm db:seed` documentado pero inexistente | Baja | S | Abierta | [H-009](hallazgos.md) |
 | DT-010 | Tooling | Grupos de Dependabot abren 2 PRs/semana; podrían unificarse | Baja | S | Aceptada | [H-005](hallazgos.md) |
 | DT-012 | Entorno | Workarounds macOS (file mode / shadow files) en volumen externo | Baja | — | Aceptada | [H-002](hallazgos.md) / [H-003](hallazgos.md) |
@@ -77,11 +79,23 @@
 - **Fix propuesto:** revisar en cada deploy; borrar el override cuando upstream suba la versión parcheada.
 - **Criterio de cierre:** override eliminado sin que vuelva el advisory.
 
-### DT-015 — Fases desktop 2–5 sin plan escrito
+### DT-015 — Fases desktop sin plan escrito
 
-- **Qué:** el proyecto exige spec/plan antes de implementar; las fases 2 (ESC/POS), 3 (backup), 4 (Electron), 5 (túnel WhatsApp) no tienen archivo de plan todavía.
-- **Por qué importa:** empezar a codear sin plan rompe la regla del proyecto y el flujo SDD.
+- **Qué:** el proyecto exige spec/plan antes de implementar. Fase 2 (impresión ESC/POS) ya tiene spec + plan y está implementada; **Fases 3 (backup), 4 (Electron) y 5 (túnel WhatsApp) siguen sin plan**.
 - **Criterio de cierre:** plan por fase en `docs/superpowers/plans/` antes de tocar código.
+
+### DT-016 — Anti-doble-impresión sin test automático
+
+- **Qué:** el gate de las páginas `/print/[id]/{kitchen,bill}` (`window.print()` solo si `printed === "browser"`) se verifica únicamente con `pnpm typecheck`. Una regresión que quite la condición pasaría desapercibida.
+- **Por qué importa:** es exactamente la regresión que la Fase 2 evita (doble impresión en desktop).
+- **Fix propuesto:** E2E Playwright que afirme que NO se llama `window.print()` cuando la respuesta es `printed:"server"`, o extraer el predicado a una función pura testeable.
+- **Criterio de cierre:** test que falle si el gate desaparece.
+
+### DT-017 — `id` malformado en rutas de pedido → 500
+
+- **Qué:** `getOrder(id)` con un id no-UUID llega a Postgres y explota con `invalid input syntax for type uuid` → 500 en vez de 404. Pre-existente, aplica a todas las rutas de pedido (no solo impresión).
+- **Fix propuesto:** validar/parsear el id en el borde (`src/infra/db/order-repository.ts` o el handler) antes de tocar la DB.
+- **Criterio de cierre:** id no-UUID → 404.
 
 ### DT-010 / DT-012 / DT-013 / DT-014 — Aceptadas
 
