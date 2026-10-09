@@ -53,4 +53,25 @@ describe("createFolderDestination", () => {
     const listed = await dest.list();
     expect(listed.ok && listed.value).toEqual([]);
   });
+
+  test("read rechaza un nombre fuera del universo de backups sin tocar el filesystem", async () => {
+    const dest = createFolderDestination({ id: "folder", label: "Carpeta", dir });
+    const result = await dest.read("../escape.sql");
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.error.kind).toBe("read_failed");
+  });
+
+  test("remove rechaza un nombre fuera del universo de backups sin tocar el filesystem", async () => {
+    const dest = createFolderDestination({ id: "folder", label: "Carpeta", dir });
+    const result = await dest.remove("../escape.sql");
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.error.kind).toBe("delete_failed");
+  });
+
+  test("write rechaza un nombre fuera del universo de backups sin tocar el filesystem", async () => {
+    const dest = createFolderDestination({ id: "folder", label: "Carpeta", dir });
+    const result = await dest.write("notes.txt", new TextEncoder().encode("x"));
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.error.kind).toBe("write_failed");
+  });
 });

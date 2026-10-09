@@ -11,6 +11,10 @@ const message = (cause: unknown): string =>
 const isNotFound = (cause: unknown): boolean =>
   typeof cause === "object" && cause !== null && "code" in cause && cause.code === "ENOENT";
 
+// El nombre solo puede venir del universo de backups; validarlo antes de tocar
+// el filesystem evita path traversal (`../`) y rechaza cualquier otro archivo.
+const outsideUniverse = (name: string): boolean => !isBackupFileName(name);
+
 export function createFolderDestination(input: {
   id: string;
   label: string;
@@ -21,6 +25,9 @@ export function createFolderDestination(input: {
     label: input.label,
 
     async write(name, bytes): Promise<Result<void, BackupError>> {
+      if (outsideUniverse(name)) {
+        return err({ kind: "write_failed", message: `nombre inválido: ${name}` });
+      }
       try {
         await mkdir(input.dir, { recursive: true });
         await writeFile(join(input.dir, name), bytes);
@@ -46,6 +53,9 @@ export function createFolderDestination(input: {
     },
 
     async read(name): Promise<Result<string, BackupError>> {
+      if (outsideUniverse(name)) {
+        return err({ kind: "read_failed", message: `nombre inválido: ${name}` });
+      }
       try {
         return ok(await readFile(join(input.dir, name), "utf8"));
       } catch (cause) {
@@ -54,6 +64,9 @@ export function createFolderDestination(input: {
     },
 
     async remove(name): Promise<Result<void, BackupError>> {
+      if (outsideUniverse(name)) {
+        return err({ kind: "delete_failed", message: `nombre inválido: ${name}` });
+      }
       try {
         await rm(join(input.dir, name));
         return ok(undefined);
