@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
 import * as schema from "@/infra/db/schema";
 import type { DbHandle } from "@/infra/db/types";
+import { createPgliteBackupSource } from "@/infra/backup/pglite-source";
 
 export async function createPgliteDb(input: {
   dataDir: string;
@@ -13,7 +14,7 @@ export async function createPgliteDb(input: {
   try {
     const db = drizzle(client, { schema });
     await migrate(db, { migrationsFolder: input.migrationsFolder });
-    return { db, close: () => client.close() };
+    return { db, close: () => client.close(), backupSource: createPgliteBackupSource(client) };
   } catch (error) {
     // Release the client before surfacing the failure, otherwise the data dir
     // lock is held for the life of the process.
