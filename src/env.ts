@@ -53,3 +53,8 @@ export function getEnv(): Env {
   cached = parseEnv(process.env);
   return cached;
 }
+
+/** Solo para tests: limpia el cache de getEnv() para poder cambiar process.env. */
+export function resetEnvCacheForTests(): void {
+  cached = null;
+}

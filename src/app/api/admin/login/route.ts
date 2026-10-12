@@ -4,6 +4,7 @@ import { verifyPassword } from "@/infra/auth/password";
 import { createSessionToken, SESSION_COOKIE } from "@/infra/auth/session";
 import { getDb } from "@/infra/db/client";
 import { adminSessions } from "@/infra/db/schema";
+import { getAdminPasswordHash } from "@/infra/db/settings-repository";
 import { createRateLimiter } from "@/infra/security/rate-limit";
 
 const loginLimiter = createRateLimiter({
@@ -37,9 +38,9 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
-  // En desktop el hash puede faltar hasta que corra el wizard de primer
-  // arranque; en cloud viene de env.
-  const hash = env.ADMIN_PASSWORD_HASH;
+  // En desktop el hash lo setea el wizard en `settings`; en cloud viene de
+  // env. Si ambos existen, settings gana. Sin ninguno, falta el setup.
+  const hash = (await getAdminPasswordHash()) ?? env.ADMIN_PASSWORD_HASH;
   if (!hash) {
     return NextResponse.json(
       { ok: false, error: { code: "setup_required", message: "Falta configurar la contraseña" } },
