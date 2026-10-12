@@ -51,7 +51,7 @@
 | DT-007 | Seguridad | 1 advisory **moderate** residual (bajo el umbral `high`) | Baja | S | Abierta | [H-007](hallazgos.md) |
 | DT-008 | Desktop | Verificar que `drizzle/` + WASM PGlite viajan en el bundle standalone | Media | S | Abierta | Fase 4; ver [DT-035] |
 | DT-011 | Desktop | Cookie `secure` en HTTP intranet rompe login | Media | S | Abierta | Plan desktop R6 |
-| DT-015 | Desktop | Fases desktop sin plan escrito; Fase 3 ya tiene plan, faltan 4 (Electron) y 5 (túnel) | Media | M | En progreso | Plan maestro |
+| DT-015 | Desktop | Fases desktop sin plan escrito; Fases 3 y 4 ya tienen plan, falta 5 (túnel) | Media | M | En progreso | Plan maestro |
 | DT-016 | Testing | Anti-doble-impresión en `/print/...` sin test automático (solo typecheck) | Media | S | Abierta | Fase 2 |
 | DT-017 | API | `id` malformado (no-UUID) en rutas de pedido → 500 en vez de 404 | Baja | S | Abierta | Fase 2 |
 | DT-018 | Deps | `drivelist` (addon nativo) sin bindings: pnpm ignora su build script | Media | S | Abierta | Fase 3 backup |
