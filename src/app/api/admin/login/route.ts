@@ -37,7 +37,16 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
-  const ok = await verifyPassword(password, env.ADMIN_PASSWORD_HASH);
+  // En desktop el hash aún no está en env (lo setea el wizard y vive en DB);
+  // sin hash no hay autenticación posible todavía.
+  const hash = env.ADMIN_PASSWORD_HASH;
+  if (!hash) {
+    return NextResponse.json(
+      { ok: false, error: { code: "not_configured", message: "La autenticación no está configurada" } },
+      { status: 503 },
+    );
+  }
+  const ok = await verifyPassword(password, hash);
   if (!ok) {
     return NextResponse.json(
       { ok: false, error: { code: "unauthorized", message: "Contraseña incorrecta" } },
@@ -53,7 +62,7 @@ export async function POST(req: NextRequest) {
   res.cookies.set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: env.NODE_ENV === "production",
+    secure: env.SESSION_COOKIE_SECURE,
     expires: expiresAt,
     path: "/",
   });

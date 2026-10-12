@@ -87,3 +87,27 @@ describe("env de backup", () => {
     expect(() => parseEnv({ ...base, BACKUP_KEEP: "0" })).toThrow();
   });
 });
+
+describe("env de Fase 4 (desktop)", () => {
+  const base = {
+    DATABASE_URL: "postgres://x",
+    SESSION_SECRET: "a".repeat(32),
+  };
+
+  it("ADMIN_PASSWORD_HASH es opcional", () => {
+    const env = parseEnv(base);
+    expect(env.ADMIN_PASSWORD_HASH).toBeUndefined();
+  });
+
+  it("SESSION_COOKIE_SECURE default true y parsea 'false'", () => {
+    expect(parseEnv(base).SESSION_COOKIE_SECURE).toBe(true);
+    expect(parseEnv({ ...base, SESSION_COOKIE_SECURE: "false" }).SESSION_COOKIE_SECURE).toBe(false);
+  });
+
+  it("DESKTOP_LAN_URL es opcional", () => {
+    expect(parseEnv(base).DESKTOP_LAN_URL).toBeUndefined();
+    expect(parseEnv({ ...base, DESKTOP_LAN_URL: "http://192.168.1.5:3210" }).DESKTOP_LAN_URL).toBe(
+      "http://192.168.1.5:3210",
+    );
+  });
+});

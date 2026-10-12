@@ -10,7 +10,12 @@ const envSchema = z
     BACKUP_KEEP: z.coerce.number().int().min(1).default(7),
     PRINTER_HOST: z.string().default(""),
     PRINTER_PORT: z.coerce.number().int().min(1).max(65535).default(9100),
-    ADMIN_PASSWORD_HASH: z.string().regex(/^\$2[aby]\$10\$.+/, "debe ser hash bcrypt"),
+    // Opcional: en desktop el hash lo setea el wizard de primer arranque y vive
+    // en la tabla `settings`. En cloud sigue viniendo de env.
+    ADMIN_PASSWORD_HASH: z
+      .string()
+      .regex(/^\$2[aby]\$10\$.+/, "debe ser hash bcrypt")
+      .optional(),
     SESSION_SECRET: z.string().min(32, "mínimo 32 caracteres"),
     WHATSAPP_BSP_API_KEY: z.string().optional(),
     WHATSAPP_BSP_URL: z.string().url().default("https://waba-v2.360dialog.io"),
@@ -19,6 +24,11 @@ const envSchema = z
     BUSINESS_ADDRESS: z.string().default(""),
     BUSINESS_PHONE: z.string().default(""),
     DEFAULT_PREP_TIME_MINUTES: z.coerce.number().int().min(1).default(25),
+    SESSION_COOKIE_SECURE: z
+      .enum(["true", "false"])
+      .default("true")
+      .transform((v) => v === "true"),
+    DESKTOP_LAN_URL: z.string().optional(),
     NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   })
   .superRefine((val, ctx) => {
