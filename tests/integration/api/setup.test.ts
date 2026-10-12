@@ -65,4 +65,16 @@ describe("POST /api/setup", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("set-cookie") ?? "").toContain("admin_session=");
   });
+
+  test("403 si el Host no es localhost", async () => {
+    const { POST } = await import("@/app/api/setup/route");
+    const res = await POST(
+      new Request("http://192.168.1.50/api/setup", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ password: "clave-dura" }),
+      }),
+    );
+    expect(res.status).toBe(403);
+  });
 });

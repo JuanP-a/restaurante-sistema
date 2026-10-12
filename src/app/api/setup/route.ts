@@ -11,7 +11,25 @@ import {
   setSetting,
 } from "@/infra/db/settings-repository";
 
+function isLocalHost(host: string | null): boolean {
+  if (!host) return false;
+  const hostname = host.replace(/:\d+$/, "").replace(/^\[|\]$/g, "");
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+}
+
 export async function POST(req: Request) {
+  // El wizard siempre corre en la máquina host (la ventana de Electron carga
+  // http://127.0.0.1:<puerto>). Con bind a la LAN, sin este guard cualquiera en
+  // la red podría reclamar el admin durante la ventana de primer arranque.
+  // El header Host no está disponible en un Request construido a mano (es
+  // forbidden header), así que caemos al host de la URL.
+  if (!isLocalHost(req.headers.get("host") ?? new URL(req.url).host)) {
+    return NextResponse.json(
+      { ok: false, error: { code: "forbidden_host", message: "El setup solo se puede hacer localmente" } },
+      { status: 403 },
+    );
+  }
+
   const env = getEnv();
   // No permitir setup si ya hay hash en cualquier fuente. En cloud el hash vive
   // en env y `settings` está vacía: sin este chequeo, el endpoint público
