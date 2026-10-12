@@ -51,6 +51,40 @@ node -e 'console.log(require("bcryptjs").hashSync("TU-PASSWORD", 10))'
 
 `SESSION_SECRET` debe ser ≥32 chars random: `openssl rand -hex 32`.
 
+## Versión de escritorio
+
+El mismo código corre como app de escritorio Windows: un shell Electron que arranca el server Next standalone + PGlite embebida como proceso hijo, vive en la bandeja y sirve la LAN del local. No requiere Docker ni base de datos externa.
+
+Flujo de uso:
+
+1. **Instalar el `.exe`** (instalador NSIS). En el primer arranque, Windows pedirá permiso de firewall: aceptar y marcar **redes privadas** (para que el celular pueda conectarse).
+2. **Wizard de contraseña:** la app gatea a `/setup` y pide la contraseña del local. Queda guardada en la tabla `settings` (no en variables de entorno).
+3. **Conectar el celular:** entrar a `/admin/conectar` y escanear el QR con el celular (misma red WiFi) para abrir el panel.
+4. **Backups:** `/admin/backup` escribe los dumps en `Documentos/restaurante-backups` (y en USB si hay una unidad conectada).
+
+### Desarrollo y empaquetado
+
+```bash
+pnpm electron:start               # compila electron/ y abre la app (dev)
+pnpm electron:dist                # build standalone + instalador .exe (NSIS)
+```
+
+> El instalador NSIS **no se genera en macOS** (makensis es x86_64 y necesita Rosetta): empaquetar y verificar en CI/Windows. Ver [DT-048](docs/deuda-tecnica.md) y el runbook de abajo.
+
+### Runbook de verificación manual (Windows)
+
+Criterio de cierre de la Fase 4. Ejecutar en una máquina Windows real y registrar el resultado en el PR del release:
+
+1. Instalar el `.exe`; aceptar el prompt del Firewall de Windows (redes privadas).
+2. Primer arranque → se muestra `/setup`; definir la contraseña.
+3. Abrir el panel; verificar `/admin/conectar` → escanear el QR desde un celular en la misma WiFi → crear un pedido → aparece en el dashboard.
+4. Imprimir una comanda (con `PRINTER_HOST` seteado) → verificar que sale por ESC/POS.
+5. Crear un backup en `/admin/backup` → verificar el `.sql` en `Documentos/restaurante-backups` (y en USB si hay).
+6. "Reiniciar servidor" desde el tray → el panel sigue respondiendo.
+7. Cerrar la ventana → la app sigue en el tray sirviendo la LAN; reabrirla desde el tray.
+8. Reiniciar Windows → la app arranca sola (autostart) y el login sigue funcionando.
+9. Confirmar que el cookie de sesión viaja sin `Secure` sobre HTTP LAN (auto-login desde el celular) — [DT-049](docs/deuda-tecnica.md).
+
 ## Comandos
 
 | Comando | Para qué |
@@ -63,7 +97,7 @@ node -e 'console.log(require("bcryptjs").hashSync("TU-PASSWORD", 10))'
 | `pnpm test:integration` | Solo integration; corre contra PGlite in-memory o Postgres |
 | `pnpm test:watch` | Tests en watch mode |
 | `pnpm test:coverage` | Tests con reporte de coverage |
-| `pnpm test:e2e` | E2E con Playwright (requiere dev server + DB) |
+| `pnpm test:e2e` | E2E con Playwright (levanta su propio server en modo primer arranque, sin Docker) |
 | `pnpm typecheck` | `tsc --noEmit` |
 | `pnpm lint` | ESLint |
 | `pnpm drizzle:generate` | Genera migración SQL desde `schema.ts` |
