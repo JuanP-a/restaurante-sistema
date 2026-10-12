@@ -17,6 +17,31 @@
 
 | ID | Área | Deuda | Prioridad | Esfuerzo | Estado | Origen |
 |----|------|-------|-----------|----------|--------|--------|
+| DT-022 | Desktop | `/admin/backup` sin `force-dynamic`: se prerenderiza como cloud y no aparece en el `.exe` | Alta | S | Abierta | [H-015](hallazgos.md) |
+| DT-023 | Frontend | Dark-mode del SO vuelve ilegible la UI y los tickets (`bg-white` + `--foreground` claro) | Alta | S | Abierta | [H-016](hallazgos.md) |
+| DT-024 | WhatsApp | El bot no hidrata el producto: placeholder `name:"x"`/`basePrice:"0"` | Alta | M | Abierta | [H-017](hallazgos.md) |
+| DT-025 | Desktop | `runBackup` reporta éxito sin escribir en ningún destino (falso "Backup creado") | Alta | S | Abierta | [H-018](hallazgos.md) |
+| DT-026 | Desktop | `verifyBackup`: 2ª instancia PGlite por llamada; sin single-flight ni timeout/tamaño | Media | S | Abierta | [H-019](hallazgos.md) |
+| DT-027 | Seguridad | Dos modelos de sesión: `admin_sessions` no se consulta, el logout no invalida | Media | M | Abierta | [H-020](hallazgos.md) |
+| DT-028 | API | Parsear requests con Zod en el borde (elimina los `as Tipo` de las rutas) | Alta | M | Abierta | [H-021](hallazgos.md), [DT-001] |
+| DT-029 | Dominio | Pricing/armado de pedido duplicado en 2 handlers; extraer `priceOrder` puro al core | Alta | M | Abierta | Reviews backend/calidad |
+| DT-030 | Arquitectura | Repos acoplados a `getDb()` singleton: falta puerto por propósito + composition root (SaaS/tenant) | Media | L | Abierta | Review arquitectura |
+| DT-031 | Arquitectura | Estado in-process (event bus, session-store, rate-limit) sin ADR ni puertos | Media | M | Abierta | Review arquitectura |
+| DT-032 | Arquitectura | `infra/db` depende de `infra/backup` (`DbHandle.backupSource`): seam mal ubicado | Media | S | Abierta | Review arquitectura |
+| DT-033 | Arquitectura | `infra/backup/http-routes.ts` acopla Next.js y aloja el composition root en `infra` | Media | S | Abierta | Review arquitectura |
+| DT-034 | Arquitectura | Identidad de negocio duplicada: `BUSINESS_*` (server) vs `NEXT_PUBLIC_BUSINESS_*` (client) | Media | S | Abierta | Review arquitectura |
+| DT-035 | Desktop | `drivelist`/`pglite-tools` fuera del `outputFileTracingIncludes` del standalone | Media | S | Abierta | [DT-008] / [DT-018] |
+| DT-036 | Frontend | Sin manejo de errores de fetch: botones "pegados" y fallos silenciosos (login, nuevo pedido, categorías, zonas) | Media | M | Abierta | Review frontend |
+| DT-037 | Frontend | Páginas de impresión: "Cargando…" infinito sin `.catch` y duplicación kitchen/bill | Media | M | Abierta | Review frontend |
+| DT-038 | Frontend | Sin `error.tsx`/`not-found.tsx`/`loading.tsx` en la app | Media | S | Abierta | Review frontend |
+| DT-039 | Frontend | SSE sin reconexión/errores y solo escucha `order_created` | Baja | S | Abierta | Review frontend |
+| DT-040 | A11y | Inputs sin label (solo placeholder), sin `aria-pressed`; `Button` sin `focus-visible` | Media | S | Abierta | Review frontend |
+| DT-041 | UX | Sin UI de logout ni `aria-current` en el nav | Baja | S | Abierta | Review frontend |
+| DT-042 | Dominio | Dinero como `number`+`toFixed` (float); sumar en centavos enteros | Baja | M | Abierta | Review calidad |
+| DT-043 | Bot | `BotPayload` bolsa de opcionales + flag `created`: estados ilegales representables | Media | M | Abierta | Review calidad |
+| DT-044 | Bot | `buildBotReply` es un `switch` de ~160 líneas (9 estados) | Media | M | Abierta | Review calidad |
+| DT-045 | Mantenibilidad | Menores de core/infra: `listZones(_activeOnly)`, contrato de `calculateOrderTotals`, `truncate`/`twoColumns`, `importMenu`/`parse-import`, `?? 1` en secuencia, event-bus stringly, `as any` en test, `raw_input` | Baja | S | Abierta | Reviews varios |
+| DT-046 | Desktop | Impresora única por env global; sin seam N impresoras; `not_configured` es variante muerta | Baja | M | Abierta | Review arquitectura |
 | DT-001 | Tooling | Sin linter; `pnpm lint` documentado pero inexistente | Alta | S | Abierta | [H-009](hallazgos.md) |
 | DT-003 | CI | Integration tests no corren en CI (solo unit) | Alta | M | Abierta | [H-008](hallazgos.md) |
 | DT-009 | Dominio | Nº de pedido global, no reinicia diario (spec pedía 4 AM) | Media | M | Abierta | Plan desktop Q1 |
@@ -24,15 +49,15 @@
 | DT-005 | Feature | Import de menú: `includes`/`extras`/`optionGroups` se parsean pero no persisten | Media | M | Abierta | Import menú |
 | DT-006 | Deps | Override de `sharp` (módulo nativo) — riesgo de binario en deploy | Media | S | Abierta | [ADR 0004](../decisions/0004-pnpm-overrides-advisories.md) |
 | DT-007 | Seguridad | 1 advisory **moderate** residual (bajo el umbral `high`) | Baja | S | Abierta | [H-007](hallazgos.md) |
-| DT-008 | Desktop | Verificar que `drizzle/` + WASM PGlite viajan en el bundle standalone | Media | S | Abierta | Fase 4 |
+| DT-008 | Desktop | Verificar que `drizzle/` + WASM PGlite viajan en el bundle standalone | Media | S | Abierta | Fase 4; ver [DT-035] |
 | DT-011 | Desktop | Cookie `secure` en HTTP intranet rompe login | Media | S | Abierta | Plan desktop R6 |
-| DT-015 | Desktop | Fases desktop sin plan escrito (regla: plan antes de código) | Media | M | En progreso | Plan maestro |
+| DT-015 | Desktop | Fases desktop sin plan escrito; Fase 3 ya tiene plan, faltan 4 (Electron) y 5 (túnel) | Media | M | En progreso | Plan maestro |
 | DT-016 | Testing | Anti-doble-impresión en `/print/...` sin test automático (solo typecheck) | Media | S | Abierta | Fase 2 |
 | DT-017 | API | `id` malformado (no-UUID) en rutas de pedido → 500 en vez de 404 | Baja | S | Abierta | Fase 2 |
 | DT-018 | Deps | `drivelist` (addon nativo) sin bindings: pnpm ignora su build script | Media | S | Abierta | Fase 3 backup |
 | DT-019 | Deps | `pglite-tools` fija el peer de PGlite en versión exacta: subir ambos en lockstep | Media | S | Abierta | [H-014](hallazgos.md) |
 | DT-020 | Desktop | El swap en vivo de la DB (restaurar reemplazando el `dataDir`) no está implementado | Media | M | Abierta | Fase 3 backup |
-| DT-021 | Desktop | El backup no está serializado contra las queries de la app (PGlite single-connection) | Baja | S | Abierta | [H-001](hallazgos.md) |
+| DT-021 | Desktop | El backup no está serializado contra las queries de la app (PGlite single-connection) | Media | S | Abierta | [H-001](hallazgos.md), [H-019](hallazgos.md) |
 | DT-002 | Tooling | `pnpm db:seed` documentado pero inexistente | Baja | S | Abierta | [H-009](hallazgos.md) |
 | DT-010 | Tooling | Grupos de Dependabot abren 2 PRs/semana; podrían unificarse | Baja | S | Aceptada | [H-005](hallazgos.md) |
 | DT-012 | Entorno | Workarounds macOS (file mode / shadow files) en volumen externo | Baja | — | Aceptada | [H-002](hallazgos.md) / [H-003](hallazgos.md) |
@@ -42,6 +67,181 @@
 ---
 
 ## Detalle
+
+### DT-022 — `/admin/backup` sin `force-dynamic`
+
+- **Qué:** `src/app/admin/backup/page.tsx` no declara `export const dynamic = "force-dynamic"`. En `next build` sin DB, `getBackupSource()` devuelve `null` y Next hornea el branch "solo escritorio" como estático (ver [H-015](hallazgos.md)).
+- **Por qué importa:** en el `.exe` (Fase 4) la UI de backup nunca se muestra, pese a que el endpoint existe.
+- **Fix propuesto:** añadir `export const dynamic = "force-dynamic";` (o `await connection()`), igual que `orders/page.tsx:12` y `menu/page.tsx:9`.
+- **Criterio de cierre:** en un build standalone con `backupSource` presente, `/admin/backup` renderiza la UI.
+
+### DT-023 — Dark-mode rompe contraste de UI y tickets
+
+- **Qué:** `globals.css:15-20` pisa `--foreground` a `#ededed` en modo oscuro; `Card`/`CardList` y varias páginas usan `bg-white` sin color de texto explícito; las páginas de impresión heredan el mismo color (ver [H-016](hallazgos.md)).
+- **Por qué importa:** con el SO en modo oscuro el texto de tarjetas/encabezados queda casi blanco sobre blanco (invisible) y el ticket puede salir ilegible.
+- **Fix propuesto:** quitar el bloque `@media (prefers-color-scheme: dark)` (app light-only) **o** fijar un `color` real; y en `@media print` forzar `color:#000; background:#fff`.
+- **Criterio de cierre:** con el SO en oscuro, UI y tickets legibles.
+
+### DT-024 — El bot no hidrata el producto
+
+- **Qué:** `toBotEvent` (`webhooks/whatsapp/route.ts:165-171`) fabrica `product_picked` con `name:"x"`, `basePrice:"0"`; el precio se re-hidrata al crear el pedido, pero el **nombre** falso queda en el carrito (ver [H-017](hallazgos.md)).
+- **Por qué importa:** la confirmación al cliente sale `• 1 x`; bug visible en el camino principal del bot.
+- **Fix propuesto:** que `product_picked` lleve solo `productId` y se hidrate nombre/precio desde `getProduct` en un único punto (idealmente `addItemToCart` puro) antes de `in_cart`.
+- **Criterio de cierre:** test que la confirmación incluye el nombre real del producto.
+
+### DT-025 — `runBackup` reporta éxito sin destino escrito
+
+- **Qué:** `runBackup` (`backup-service.ts:52`) devuelve `ok` con `written: []`; el endpoint responde 200 `ok:true` y la UI muestra "Backup creado." (ver [H-018](hallazgos.md)).
+- **Por qué importa:** falso sentido de seguridad — creer que hay respaldo cuando no lo hay.
+- **Fix propuesto:** tratar `written.length === 0` como fallo (502) en `http-routes.ts`, o devolver `err` desde `runBackup`; la UI debe leer `written`/`failures`, no solo `ok`.
+- **Criterio de cierre:** sin destino escribible → error visible, nunca 200 "creado".
+
+### DT-026 — `verifyBackup` y la segunda instancia PGlite
+
+- **Qué:** `restore-verify.ts:10` crea y cierra un `PGlite` por llamada; sin single-flight ni límite de tamaño/tiempo de `exec` (ver [H-019](hallazgos.md)).
+- **Por qué importa:** churn de WASM coexistiendo con la instancia long-lived; contradice la mitigación de [H-001](hallazgos.md)/R2.
+- **Fix propuesto:** serializar (cola de tamaño 1) y/o reutilizar una instancia efímera; cota de tamaño del dump y `statement_timeout`. Resolver junto con [DT-021].
+- **Criterio de cierre:** validaciones repetidas/concurrentes no crean múltiples instancias ni cuelgan el server.
+
+### DT-027 — Modelo de sesión único
+
+- **Qué:** `admin_sessions` se escribe en login y se borra en logout, pero **nadie la lee**; el middleware autoriza por HMAC (`verifyToken`) (ver [H-020](hallazgos.md)).
+- **Por qué importa:** el logout no invalida; un token robado sigue válido hasta 7 días. Dos fuentes de verdad para la sesión.
+- **Fix propuesto:** o el middleware valida contra `admin_sessions` (logout efectivo), o se elimina la tabla y se adoptan tokens cortos con revocación. Registrar en ADR.
+- **Criterio de cierre:** tras el logout, el token deja de autorizar.
+
+### DT-028 — Parsear requests con Zod en el borde
+
+- **Qué:** los cuerpos se castean (`as IncomingOrder`, `as { status: string }`, `as Record<string, unknown>`, webhook con varios `as`) en lugar de parsearse; los schemas Zod existentes solo se usan para respuestas (ver [H-021](hallazgos.md)).
+- **Por qué importa:** viola la regla "sin `as Tipo`", borra el tipo justo en el borde no confiable y produce 500 donde debería haber 400.
+- **Fix propuesto:** un schema Zod por endpoint (`orders` POST/status, `menu` PATCH, `webhooks/whatsapp`, `delivery-zones`); `.safeParse` → 400 tipado. Encadenar con [DT-001].
+- **Criterio de cierre:** sin `as Tipo` sobre input externo; input malformado → 400.
+
+### DT-029 — Extraer pricing/armado de pedido al core
+
+- **Qué:** `api/orders/route.ts:46-112` y `webhooks/whatsapp/route.ts:187-258` reimplementan el mismo cálculo (`unitPrice = (base + extras).toFixed(2)`, snapshots, `calculateOrderTotals`) y duplican el join de costo por colonia.
+- **Por qué importa:** aritmética de dinero divergente en la shell; un cambio de regla hay que recordarlo en dos sitios y solo uno tiene tests de core.
+- **Fix propuesto:** `priceOrder(...)`/`buildOrderDraft(...)` puro en `src/core/order/`; los handlers solo buscan datos (impuro) y persisten. El bot usa `getColoniaDeliveryCost`.
+- **Criterio de cierre:** una sola implementación, cubierta por tests de core.
+
+### DT-030 — Puertos por propósito + composition root
+
+- **Qué:** el "puerto" `Db` es el tipo de Drizzle (interface por tecnología) y los repos resuelven `getDb()`/`globalThis.__db` (~20 call sites); no hay contexto de request/tenant.
+- **Por qué importa:** es la decisión desktop que más bloquea un SaaS multi-tenant (una DB por proceso, sin dónde inyectar `tenantId`).
+- **Fix propuesto:** interfaces por propósito (`OrderRepository`, …) inyectadas desde un composition root; mínimo un `withTenant(ctx, fn)`. `getDb()` queda como detalle del composition root desktop.
+- **Criterio de cierre:** los repos dependen de una interface, no de un singleton global.
+
+### DT-031 — Estado in-process: ADR + puertos
+
+- **Qué:** event bus, `session-store` y `rate-limit` viven en memoria del proceso.
+- **Por qué importa:** correcto para desktop/single-instance, bloqueante a escala horizontal; decisión con trade-offs y sin ADR.
+- **Fix propuesto:** ADR que lo declare intencional + esconderlo tras puertos (`EventPublisher`, `BotSessionStore`, `RateLimiter`) para permitir swap a Redis/Postgres.
+- **Criterio de cierre:** ADR escrito y consumo vía puertos.
+
+### DT-032 — `infra/db` depende de `infra/backup`
+
+- **Qué:** `DbHandle.backupSource?` y el adapter PGlite construyen la `BackupSource`.
+- **Por qué importa:** al splitear a `packages/db`, ese paquete arrastraría el contexto de backup.
+- **Fix propuesto:** quitar `backupSource` de `DbHandle`; exponer el cliente crudo y que el módulo de backup arme su `BackupSource` en un composition root desktop-only.
+- **Criterio de cierre:** `infra/db` no importa `infra/backup`.
+
+### DT-033 — `infra/backup/http-routes.ts` acopla Next.js
+
+- **Qué:** `http-routes.ts` importa `NextResponse` y `deps.ts` es el composition root dentro de `infra`.
+- **Por qué importa:** core/infra deben quedar framework-free para el split a `packages/*`/apps.
+- **Fix propuesto:** mover las fábricas de rutas y `realBackupDeps()` a la capa app (`src/app/api/backup/_lib`).
+- **Criterio de cierre:** `infra/backup` no importa `next`.
+
+### DT-034 — Identidad de negocio duplicada
+
+- **Qué:** `env.BUSINESS_*` (server, ESC/POS) vs `NEXT_PUBLIC_BUSINESS_*` (client, fallback navegador), con defaults independientes.
+- **Por qué importa:** la misma cuenta puede imprimir distinto según el transporte; un SaaS multi-tenant no lo sostiene.
+- **Fix propuesto:** fuente única resuelta en el server y pasada al page o incluida en la respuesta de `/api/orders/[id]`.
+- **Criterio de cierre:** una sola fuente de identidad de negocio.
+
+### DT-035 — `drivelist`/`pglite-tools` fuera del trace standalone
+
+- **Qué:** `next.config.ts` incluye `./drizzle/**` y PGlite, pero no `drivelist` (import dinámico) ni `@electric-sql/pglite-tools`.
+- **Por qué importa:** R3 se creyó mitigado; el `.exe` perdería detección USB y, potencialmente, el `pgDump`.
+- **Fix propuesto:** añadir ambos a `outputFileTracingIncludes`/`serverExternalPackages`; verificar en el `.exe`. Encadenar con [DT-008] y [DT-018].
+- **Criterio de cierre:** el build de escritorio incluye ambos módulos.
+
+### DT-036 — Manejo de errores de fetch en el frontend
+
+- **Qué:** `login`, `admin/orders/new`, `menu/categories`, `delivery-zones` y `products-list` no usan `try/catch/finally` ni chequean `r.ok`; ante fallo el botón queda "pegado" y los errores se tragan.
+- **Por qué importa:** el operador no recibe feedback ante caída de red o 5xx.
+- **Fix propuesto:** `try/catch/finally` que resetee el busy, chequeo de `r.ok` + `parseErrorMessage`, error visible (`ErrorMessage`). Modelo a seguir: `backup-actions.tsx`.
+- **Criterio de cierre:** ningún botón queda bloqueado tras un fallo.
+
+### DT-037 — Páginas de impresión: errores + duplicación
+
+- **Qué:** `print/[id]/{kitchen,bill}` no chequean `r.ok` ni usan `.catch` → "Cargando…" infinito ante 404/fallo; ambas duplican la lógica de auto-impresión.
+- **Por qué importa:** spinner eterno sin feedback; cada fix hay que hacerlo dos veces.
+- **Fix propuesto:** extraer `useAutoPrint(id, kind)` + componente `<Receipt>`; validar `OrderDetailResponse` y mostrar error. Unificar con `use(params)` y limpiar el `setTimeout`.
+- **Criterio de cierre:** 404/fallo muestra mensaje (no spinner); una sola implementación.
+
+### DT-038 — Sin error boundaries
+
+- **Qué:** no existen `error.tsx`/`not-found.tsx`/`loading.tsx`/`global-error.tsx`.
+- **Por qué importa:** si un repositorio lanza (DB caída, migración faltante), el operador ve el error genérico de Next sin navegación.
+- **Fix propuesto:** `src/app/admin/error.tsx` (client, con `reset()`), `loading.tsx` con `Loading`; opcional `not-found.tsx`.
+- **Criterio de cierre:** un throw en una página muestra UI de recuperación dentro del layout admin.
+
+### DT-039 — SSE sin reconexión/errores
+
+- **Qué:** `orders-list.tsx` usa `EventSource` sin `onerror` y solo escucha `order_created`.
+- **Por qué importa:** sesión expirada reintenta sin feedback; cambios de estado de otros operadores no se reflejan.
+- **Fix propuesto:** manejar `onerror` (aviso + backoff), incluir el nº en el `aria-live`, considerar `status_change`/revalidar.
+- **Criterio de cierre:** caída de SSE produce aviso y reconexión controlada.
+
+### DT-040 — A11y: labels y foco
+
+- **Qué:** inputs solo con placeholder (`orders/new`, `delivery-zones`, `menu/categories`); botones de categoría sin `aria-pressed`; `Button` sin `focus-visible`.
+- **Por qué importa:** WCAG 3.3.2/4.1.2; targets chicos en celular (uso principal según AGENTS.md).
+- **Fix propuesto:** pasar `label` (`sr-only`)/`aria-label`, `aria-pressed` en botones de categoría, `focus-visible:*` en `Button`.
+- **Criterio de cierre:** audit a11y básico sin hallazgos de label/foco.
+
+### DT-041 — Sin UI de logout
+
+- **Qué:** el nav admin no tiene "Salir" (el endpoint existe) ni `aria-current`.
+- **Por qué importa:** el operador no puede cerrar sesión desde la UI; sin wayfinding de sección activa.
+- **Fix propuesto:** botón "Salir" → `POST /api/admin/logout` + `router.push("/login")`; `aria-current="page"` en el link activo.
+- **Criterio de cierre:** logout disponible en la UI.
+
+### DT-042 — Dinero como float
+
+- **Qué:** `calculate-order.ts` opera con `Number()` + `toFixed(2)`.
+- **Por qué importa:** derivas de redondeo en montos persistidos como `decimal(10,2)`.
+- **Fix propuesto:** sumar en centavos enteros (`Math.round(x*100)`) y formatear al final; test con items fraccionarios.
+- **Criterio de cierre:** totales exactos con entradas fraccionarias.
+
+### DT-043 — `BotPayload` con opcionales + `created`
+
+- **Qué:** `payload` es una bolsa plana de opcionales más un flag `created` (`state-machine.ts:21-31,109`).
+- **Por qué importa:** permite estados imposibles (`idle` con `cart`), y `created` obliga al consumidor a recordar resetearlo.
+- **Fix propuesto:** estrechar el payload por variante de `BotState` (unión discriminada).
+- **Criterio de cierre:** `tsc` impide combinaciones estado/payload inválidas.
+
+### DT-044 — `buildBotReply` switch de ~160 líneas
+
+- **Qué:** una función con 9 `case` y anidación hasta 5-6.
+- **Por qué importa:** supera los límites de función (<50) y anidación (≤4) del proyecto; difícil de testear por partes.
+- **Fix propuesto:** `Record<BotStateName, (ctx) => ReplyAction[]>` de renderers chicos.
+- **Criterio de cierre:** cada estado se testea aislado.
+
+### DT-045 — Menores de core/infra
+
+- **Qué:** `listZones(_activeOnly)` ignora el parámetro; contrato mentiroso de `calculateOrderTotals` (`extras` muerto / `unitPrice` pasado como `basePrice`); `importMenu` con doble loop anidado; helpers duplicados en `parse-import`; `truncate` usa `"..."` (`render-ticket.ts:16-19`) y `twoColumns` puede exceder 48 cols; `?? 1` silencioso en la secuencia; event-bus `kind: string/data: unknown`; `as any` en `order-repository.test.ts:98,171`; `ParsedResponse` sin uso; `raw_input` (snake_case).
+- **Por qué importa:** ruido acumulado y errores silenciosos de layout/secuencia.
+- **Fix propuesto:** tratar cada punto (parámetro real o removerlo, contrato único de item, helpers extraídos, `…`, clamp de columnas, error en vez de `?? 1`, `DomainEvent` tipado, `db.execute<T>()` en tests).
+- **Criterio de cierre:** sin parámetros muertos, sin `as any`, layout de 48 cols garantizado.
+
+### DT-046 — Impresora única por env; sin seam N impresoras
+
+- **Qué:** `resolveTransport(env)` devuelve un solo `PrintTransport` por `PRINTER_HOST`/`PRINTER_PORT`; el tipo de ticket no selecciona impresora; `PrintError.kind: "not_configured"` nunca se produce.
+- **Por qué importa:** el "seam para 2 impresoras" del spec no existe en código; multi-tenant requerirá tocarlo.
+- **Fix propuesto:** `Record<PrintKind, PrintTransport>` (o `PrinterRegistry`) e inyectar la identidad de negocio en `printOrder` en vez de leer `getEnv()` adentro.
+- **Criterio de cierre:** mapear kind→impresora sin romper el caso de 1.
 
 ### DT-001 — Sin linter
 
@@ -85,7 +285,7 @@
 
 ### DT-015 — Fases desktop sin plan escrito
 
-- **Qué:** el proyecto exige spec/plan antes de implementar. Fase 2 (impresión ESC/POS) ya tiene spec + plan y está implementada; **Fases 3 (backup), 4 (Electron) y 5 (túnel WhatsApp) siguen sin plan**.
+- **Qué:** el proyecto exige spec/plan antes de implementar. Fases 1–3 (PGlite, impresión ESC/POS, backups) ya tienen spec + plan y están mergeadas; **Fases 4 (Electron) y 5 (túnel WhatsApp) siguen sin plan**.
 - **Criterio de cierre:** plan por fase en `docs/superpowers/plans/` antes de tocar código.
 
 ### DT-016 — Anti-doble-impresión sin test automático
@@ -124,10 +324,10 @@
 
 ### DT-021 — El backup no está serializado contra las queries de la app
 
-- **Qué:** PGlite es single-connection; `pgDump` corre sobre esa misma conexión mientras la app puede estar consultando.
-- **Por qué importa:** un backup concurrente podría interferir con prepared statements vivos.
-- **Fix propuesto:** serializar backup vs. queries de la app si se agrega schedule (Fase 4). Fase 3 lo dispara manual, sin concurrencia real.
-- **Criterio de cierre:** backup manual concurrente con la app no genera errores.
+- **Qué:** PGlite es single-connection; `pgDump` corre sobre esa misma conexión mientras la app puede estar consultando, y el dump termina con `DEALLOCATE ALL` (ver [H-012](hallazgos.md) y [H-019](hallazgos.md)).
+- **Por qué importa:** en un restaurante en servicio el operador dispara el backup **con** pedidos fluyendo: el dump bloquea la única conexión y el `DEALLOCATE ALL` puede invalidar prepared statements en vuelo. Subestimado como "sin concurrencia real".
+- **Fix propuesto:** mutex que serialice backup vs. queries (o pausar escritura durante el dump); resolver junto con [DT-026](deuda-tecnica.md).
+- **Criterio de cierre:** backup disparado en servicio no produce errores ni bloqueos anómalos.
 
 ### DT-010 / DT-012 / DT-013 / DT-014 — Aceptadas
 

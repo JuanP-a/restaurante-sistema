@@ -16,6 +16,13 @@
 
 | ID | Fecha | Hallazgo | Impacto | Documentado en |
 |----|-------|----------|---------|----------------|
+| H-021 | 2026-10-11 | `validateNewOrder` no valida la *forma* de `items`/`serviceType` → 500 en vez de 400 | Medio | [DT-028](deuda-tecnica.md) |
+| H-020 | 2026-10-11 | `admin_sessions` nunca se consulta: el logout no invalida tokens (HMAC stateless) | Medio | [DT-027](deuda-tecnica.md) |
+| H-019 | 2026-10-11 | `verifyBackup` crea una 2ª instancia PGlite (churn) coexistiendo con la long-lived | Medio | [DT-026](deuda-tecnica.md), [H-001](#h-001--pglite-single-connection-y-concurrencia) |
+| H-018 | 2026-10-11 | `runBackup` devuelve `ok` aunque no escriba en ningún destino | Alto | [DT-025](deuda-tecnica.md) |
+| H-017 | 2026-10-11 | El bot fabrica `name:"x"`/`basePrice:"0"`; la confirmación sale `• 1 x` | Alto | [DT-024](deuda-tecnica.md) |
+| H-016 | 2026-10-11 | Dark-mode del SO vuelve ilegible la UI (`bg-white` + `--foreground` heredado) y los tickets | Alto | [DT-023](deuda-tecnica.md) |
+| H-015 | 2026-10-11 | `/admin/backup` se prerenderiza como variante cloud (falta `force-dynamic`) | Alto | [DT-022](deuda-tecnica.md) |
 | H-014 | 2026-10-08 | `pglite-tools@0.4.8` fija el peer `@electric-sql/pglite@0.5.8` **exacto** | Medio | [DT-019](deuda-tecnica.md) |
 | H-013 | 2026-10-08 | `drivelist` es addon nativo: su ausencia no debe romper el backup | Medio | [DT-018](deuda-tecnica.md) |
 | H-012 | 2026-10-08 | `pgDump` vacía el `search_path` y cualifica las tablas como `public.*` | Bajo | `restore-verify.ts` |
@@ -34,6 +41,55 @@
 ---
 
 ## Detalle
+
+### H-021 — `validateNewOrder` valida presencia, no forma
+
+- **Qué esperábamos:** un body malformado se rechazaría con 400 (la ruta llamaba `validateNewOrder` y ya existían schemas Zod).
+- **Qué pasó:** `validateNewOrder` solo chequea `!input.items || input.items.length === 0`; un `items` no-array (número/objeto) hace `items.length === undefined` → pasa, y `for (const it of body.items)` lanza `TypeError` → **500**. `serviceType` tampoco se valida contra el enum → 500 al insertar. El cast `(await req.json()) as IncomingOrder` (`api/orders/route.ts:37`) evita que `tsc` lo detecte.
+- **Por qué importa:** input malformado (curl, cliente viejo) devuelve 500 en vez de 400, y la regla "parse don't validate" se confía a un chequeo de longitud.
+- **Fix:** [DT-028](deuda-tecnica.md).
+
+### H-020 — `admin_sessions` es estado muerto; el logout no invalida
+
+- **Qué esperábamos:** la tabla `admin_sessions` autorizaría cada request y el logout la invalidaría.
+- **Qué pasó:** `grep admin_sessions` da 4 hits (crear en login, borrar en logout, schema). **Nadie hace SELECT**: el middleware autoriza solo con HMAC (`verifyToken`, `middleware.ts:28`). El borrado del logout no tiene efecto.
+- **Por qué importa:** un token robado sobrevive al logout hasta 7 días; hay dos fuentes de verdad para "sesión" y la persistente es decorativa.
+- **Fix:** [DT-027](deuda-tecnica.md).
+
+### H-019 — `verifyBackup` crea una segunda instancia PGlite
+
+- **Qué esperábamos:** la validación de restaurabilidad reusaría la instancia in-process.
+- **Qué pasó:** `restore-verify.ts:10` hace `new PGlite()` por llamada y `close()` al salir (churn), **coexistiendo** con la instancia long-lived (`globalThis.__db`).
+- **Por qué importa:** contradice la mitigación documentada de [H-001](#h-001--pglite-single-connection-y-concurrencia) / R2 ("reusar una instancia, no crear/cerrar en churn"). Validaciones repetidas o concurrentes multiplican instancias WASM y elevan el riesgo de crash del proceso único.
+- **Fix:** [DT-026](deuda-tecnica.md).
+
+### H-018 — `runBackup` reporta éxito sin haber escrito nada
+
+- **Qué esperábamos:** si ningún destino escribió, sería un fallo.
+- **Qué pasó:** `runBackup` (`backup-service.ts:52`) devuelve `ok` con `written: []`; `http-routes.ts:71` responde 200 `ok:true` y `backup-actions.tsx` muestra "Backup creado.". El fallo queda enterrado en `failures[]`, que la UI no mira.
+- **Por qué importa:** el peor fallo posible de un backup es *creer* que hay respaldo y no tenerlo (p. ej. `BACKUP_DIR` inválido y sin USB).
+- **Fix:** [DT-025](deuda-tecnica.md).
+
+### H-017 — El bot fabrica identidad de producto (`name:"x"`)
+
+- **Qué esperábamos:** la confirmación al cliente mostraría el nombre real del producto.
+- **Qué pasó:** `toBotEvent` (`webhooks/whatsapp/route.ts:165-171`) construye `product_picked` con `name: "x"`, `basePrice: "0"` (solo tiene el `id`). El precio se re-hidrata en `createOrderFromBot`, pero el **nombre** queda "x" en el carrito → el resumen de `build-reply.ts` sale `• 1 x`.
+- **Por qué importa:** bug visible al cliente en el camino principal del bot, no estético.
+- **Fix:** [DT-024](deuda-tecnica.md).
+
+### H-016 — El dark-mode del SO rompe el contraste
+
+- **Qué esperábamos:** la app está diseñada light-only; el modo oscuro del SO no la afectaría.
+- **Qué pasó:** `globals.css:15-20` define `--foreground: #ededed` bajo `@media (prefers-color-scheme: dark)`; `body` hereda ese color y `Card`/páginas usan `bg-white` sin `text-*` → texto casi blanco sobre blanco. Las páginas de impresión heredan el mismo color sobre papel blanco.
+- **Por qué importa:** con el SO en modo oscuro, secciones de la UI quedan invisibles y los tickets pueden salir ilegibles.
+- **Fix:** [DT-023](deuda-tecnica.md).
+
+### H-015 — `/admin/backup` se prerenderiza como variante cloud
+
+- **Qué esperábamos:** la página evaluaría `getBackupSource()` en runtime (PGlite presente → muestra la UI).
+- **Qué pasó:** `admin/backup/page.tsx` es un server component async **sin** `export const dynamic`, y `next build` (sin DB) evalúa `getBackupSource()` → `null`, horneando el branch "solo escritorio" como HTML estático. Las páginas hermanas (`orders/page.tsx:12`, `menu/page.tsx:9`) sí declaran `force-dynamic` con comentario del porqué.
+- **Por qué importa:** en el `.exe` (Fase 4) el server serviría el HTML estático y el operador no podría usar backups, pese a que el endpoint sí existe.
+- **Fix:** [DT-022](deuda-tecnica.md).
 
 ### H-014 — `pglite-tools` fija el peer de PGlite en versión exacta
 
