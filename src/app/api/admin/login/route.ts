@@ -37,13 +37,13 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
-  // En desktop el hash aún no está en env (lo setea el wizard y vive en DB);
-  // sin hash no hay autenticación posible todavía.
+  // En desktop el hash puede faltar hasta que corra el wizard de primer
+  // arranque; en cloud viene de env.
   const hash = env.ADMIN_PASSWORD_HASH;
   if (!hash) {
     return NextResponse.json(
-      { ok: false, error: { code: "not_configured", message: "La autenticación no está configurada" } },
-      { status: 503 },
+      { ok: false, error: { code: "setup_required", message: "Falta configurar la contraseña" } },
+      { status: 409 },
     );
   }
   const ok = await verifyPassword(password, hash);

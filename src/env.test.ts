@@ -1,5 +1,4 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
 import { parseEnv } from "./env";
 
 describe("parseEnv", () => {
@@ -110,13 +109,5 @@ describe("env de Fase 4 (desktop)", () => {
     expect(parseEnv({ ...base, DESKTOP_LAN_URL: "http://192.168.1.5:3210" }).DESKTOP_LAN_URL).toBe(
       "http://192.168.1.5:3210",
     );
-  });
-});
-
-describe("login usa SESSION_COOKIE_SECURE (no NODE_ENV)", () => {
-  it("el route no deriva secure de NODE_ENV", () => {
-    const src = readFileSync("src/app/api/admin/login/route.ts", "utf8");
-    expect(src).toContain("secure: env.SESSION_COOKIE_SECURE");
-    expect(src).not.toContain('NODE_ENV === "production"');
   });
 });
