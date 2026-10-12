@@ -1,6 +1,12 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { isSetupRequired } from "@/infra/settings/setup-state";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  if (await isSetupRequired()) redirect("/setup");
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
       <div className="rounded bg-white p-8 text-center shadow">

@@ -11,7 +11,13 @@ const PROTECTED_PREFIXES = [
   "/api/backup",
   "/api/events",
 ];
-const PUBLIC_PATHS = ["/login", "/api/admin/login", "/api/webhooks/whatsapp"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/api/admin/login",
+  "/api/webhooks/whatsapp",
+  "/setup",
+  "/api/setup",
+];
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
