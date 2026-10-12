@@ -2,6 +2,8 @@
   "name": "restaurante-sistema",
   "version": "0.1.0",
   "private": true,
+  "description": "Sistema de pedidos del restaurante",
+  "author": "JuanPa",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "next dev",

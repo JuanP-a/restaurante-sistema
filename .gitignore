@@ -54,3 +54,6 @@ next-env.d.ts
 
 # electron build output (compiled from electron/*.ts)
 /dist-electron/
+
+# electron-builder output (installers, unpacked app)
+/dist/

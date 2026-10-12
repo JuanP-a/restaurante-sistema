@@ -1,0 +1,27 @@
+appId: com.juanpa.restaurante
+productName: Sistema de Pedidos
+directories:
+  output: dist
+files:
+  - dist-electron/**
+  - package.json
+extraResources:
+  - from: .next/standalone
+    to: standalone
+    filter:
+      - "**/*"
+  # electron-builder drops the root-level node_modules of any copied source dir
+  # (hard-coded in app-builder-lib's fileMatcher.createFilter). Copy it on its own
+  # so the standalone server keeps its runtime deps (next, @electric-sql/pglite,
+  # drivelist). Without this the server crashes on boot (Cannot find module 'next').
+  - from: .next/standalone/node_modules
+    to: standalone/node_modules
+    filter:
+      - "**/*"
+win:
+  target:
+    - nsis
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false
