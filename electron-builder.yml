@@ -18,6 +18,17 @@ extraResources:
     to: standalone/node_modules
     filter:
       - "**/*"
+  # `output: "standalone"` serves /_next/static/* and /public/* relative to its
+  # own dir; `next build` does not copy them, so ship them where the server
+  # expects (standalone/.next/static and standalone/public).
+  - from: .next/static
+    to: standalone/.next/static
+    filter:
+      - "**/*"
+  - from: public
+    to: standalone/public
+    filter:
+      - "**/*"
 win:
   target:
     - nsis
