@@ -9,9 +9,16 @@ test.describe("public surface", () => {
     expect(typeof body.ts).toBe("number");
   });
 
-  test("landing muestra link a login", async ({ page }) => {
+  test("raíz: link a login o wizard de primer arranque", async ({ page }) => {
+    // El server de E2E corre sin ADMIN_PASSWORD_HASH (primer arranque), así que
+    // `/` gatea a `/setup`. Si otra corrida ya configuró la contraseña en la
+    // misma sesión del server, `/` muestra el landing con el link al panel.
     await page.goto("/");
-    await expect(page.getByRole("link", { name: /panel/i })).toBeVisible();
+    if (/\/setup$/.test(page.url())) {
+      await expect(page.getByLabel("Contraseña del local")).toBeVisible();
+    } else {
+      await expect(page.getByRole("link", { name: /panel/i })).toBeVisible();
+    }
   });
 
   test("login page es pública", async ({ page }) => {
