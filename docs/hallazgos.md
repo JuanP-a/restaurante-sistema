@@ -16,6 +16,10 @@
 
 | ID | Fecha | Hallazgo | Impacto | Documentado en |
 |----|-------|----------|---------|----------------|
+| H-025 | 2026-10-11 | Ventana de primer arranque: `POST /api/setup` es público mientras no hay hash; en LAN cualquiera podría reclamar el admin. Mitigado restringiendo el endpoint a host local (`localhost`/`127.0.0.1`) | Medio | [DT-047](deuda-tecnica.md) |
+| H-024 | 2026-10-11 | Empaquetar con output en el volumen externo rompe el `app.asar` (offset out of range); y `makensis` es x86_64 sin Rosetta en este Mac → usar filesystem local / CI | Medio | [DT-048](deuda-tecnica.md) |
+| H-023 | 2026-10-11 | `output: "standalone"` no incluye `.next/static` ni `public`; hay que empaquetarlos en `standalone/.next/static` y `standalone/public` o los assets dan 404 | Alto | Fase 4 packaging |
+| H-022 | 2026-10-11 | `electron-builder` descarta el `node_modules` raíz de toda carpeta copiada (`fileMatcher`) → hay que copiar `standalone/node_modules` como `extraResources` aparte o el server crashea con `Cannot find module 'next'` | Alto | Fase 4 packaging |
 | H-021 | 2026-10-11 | `validateNewOrder` no valida la *forma* de `items`/`serviceType` → 500 en vez de 400 | Medio | [DT-028](deuda-tecnica.md) |
 | H-020 | 2026-10-11 | `admin_sessions` nunca se consulta: el logout no invalida tokens (HMAC stateless) | Medio | [DT-027](deuda-tecnica.md) |
 | H-019 | 2026-10-11 | `verifyBackup` crea una 2ª instancia PGlite (churn) coexistiendo con la long-lived | Medio | [DT-026](deuda-tecnica.md), [H-001](#h-001--pglite-single-connection-y-concurrencia) |
@@ -41,6 +45,34 @@
 ---
 
 ## Detalle
+
+### H-025 — La ventana de primer arranque deja el setup abierto en la LAN
+
+- **Qué esperábamos:** el wizard `POST /api/setup` solo sería alcanzable desde la ventana local del shell.
+- **Qué pasó:** mientras no hay hash, el endpoint es público (está en `PUBLIC_PATHS`) y con bind a la LAN (0.0.0.0) cualquiera en la red podía reclamar el admin en esa ventana. La carrera TOCTOU ([DT-047](deuda-tecnica.md)) es un problema aparte.
+- **Por qué importa:** reclamo de admin remoto en una red compartida (WiFi de un local).
+- **Fix:** guard de host en el handler que rechaza (`403 forbidden_host`) todo `Host` que no sea `localhost`/`127.0.0.1`/`::1`, ya que la ventana de Electron carga `http://127.0.0.1:<puerto>`. Endurecer con `INSERT ... ON CONFLICT` (DT-047).
+
+### H-024 — Empaquetar desde el volumen externo rompe el `app.asar`
+
+- **Qué esperábamos:** `electron-builder` produciría el `app.asar` sin importar dónde vive el repo.
+- **Qué pasó:** con el output en `/Volumes/M2 Mac/...` (APFS externo con shadow files y file mode raro) el armado del `app.asar` falla con `offset out of range`. Aparte, `makensis` es un binario x86_64 y este Mac (Apple Silicon) no tiene Rosetta → el target NSIS no se genera localmente.
+- **Por qué importa:** no hay build local reproducible del `.exe`; hay que empaquetar en filesystem local (`/tmp`) o, mejor, en CI/Windows.
+- **Fix:** mover el empaquetado a CI `windows-latest`; en local, trabajar desde `/tmp`. Ver [DT-048](deuda-tecnica.md).
+
+### H-023 — El standalone no incluye `.next/static` ni `public`
+
+- **Qué esperábamos:** `output: "standalone"` produciría un bundle autocontenido listo para servir.
+- **Qué pasó:** el standalone **no** copia `.next/static` (assets del cliente) ni `public`; hay que hacerlo a mano a `standalone/.next/static` y `standalone/public`, o todas las páginas dan 404 de assets (CSS/JS/imágenes).
+- **Por qué importa:** sin esto, la app empaquetada renderiza sin estilos ni JS y el wizard no funciona.
+- **Fix:** copiar ambos en el script de empaquetado (commit `fix(desktop): empaqueta .next/static y public en el bundle del shell`).
+
+### H-022 — `electron-builder` descarta el `node_modules` raíz al copiar
+
+- **Qué esperábamos:** `extraResources: { from: .next/standalone, to: standalone }` copiaría el bundle completo, `node_modules` incluido.
+- **Qué pasó:** el `fileMatcher` de electron-builder excluye el `node_modules` de **toda** carpeta copiada (política anti-duplicación de dependencias); el `standalone/node_modules` no viaja y el server crashea al arrancar con `Cannot find module 'next'`.
+- **Por qué importa:** el `.exe` instalaba pero el server hijo no levantaba.
+- **Fix:** copiar `standalone/node_modules` como `extraResources` **aparte** (con su propio `from/to`), no como parte del bloque de `standalone`.
 
 ### H-021 — `validateNewOrder` valida presencia, no forma
 
