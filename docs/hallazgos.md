@@ -16,6 +16,9 @@
 
 | ID | Fecha | Hallazgo | Impacto | Documentado en |
 |----|-------|----------|---------|----------------|
+| H-014 | 2026-10-08 | `pglite-tools@0.4.8` fija el peer `@electric-sql/pglite@0.5.8` **exacto** | Medio | [DT-019](deuda-tecnica.md) |
+| H-013 | 2026-10-08 | `drivelist` es addon nativo: su ausencia no debe romper el backup | Medio | [DT-018](deuda-tecnica.md) |
+| H-012 | 2026-10-08 | `pgDump` vacía el `search_path` y cualifica las tablas como `public.*` | Bajo | `restore-verify.ts` |
 | H-011 | 2026-10-07 | `drizzle-kit generate` lee los `._*` de `drizzle/meta` y crashea (JSON inválido) | Alto | [H-002](#h-002--volumen-externo-macos-shadow-files-) |
 | H-010 | 2026-10-07 | `drizzle/meta/0001_snapshot.json` duplicado (mismo id/prevId) rompía `drizzle-kit generate` | Alto | commit `0888535` |
 | H-009 | 2026-10-07 | `AGENTS.md` documenta `pnpm lint` y `pnpm db:seed` que no existen | Medio | [DT-001](deuda-tecnica.md), [DT-002](deuda-tecnica.md) |
@@ -31,6 +34,27 @@
 ---
 
 ## Detalle
+
+### H-014 — `pglite-tools` fija el peer de PGlite en versión exacta
+
+- **Qué esperábamos:** `@electric-sql/pglite-tools` aceptaría un rango (`^0.5.8`) de PGlite.
+- **Qué pasó:** su `peerDependencies` es `"@electric-sql/pglite": "0.5.8"` — pin **exacto**. Subir PGlite sin subir tools (o viceversa) rompe la instalación.
+- **Por qué importa:** el `pgDump` del backup vive acá; un bump desacompasado de PGlite rompe Fase 3.
+- **Fix:** subir ambos en lockstep; ver [DT-019](deuda-tecnica.md).
+
+### H-013 — `drivelist` es un addon nativo
+
+- **Qué esperábamos:** importar `drivelist` siempre funcionaría.
+- **Qué pasó:** su build script (`prebuild-install`) es ignorado por pnpm 10 y, sin bindings, el import falla.
+- **Por qué importa:** la detección de USB de los backups depende de él, pero el backup no debe caerse por su ausencia.
+- **Fix:** import **lazy** en `listDrivesFromDrivelist`, que degrada a `[]` y loguea un warning. Ver [DT-018](deuda-tecnica.md).
+
+### H-012 — `pgDump` vacía el `search_path` y cualifica `public.*`
+
+- **Qué esperábamos:** ejecutar el dump en una PGlite nueva y consultar `SELECT count(*) FROM orders` daría el conteo.
+- **Qué pasó:** el dump de `pgDump` empieza con `SELECT pg_catalog.set_config('search_path', '', false)` y crea las tablas como `public.orders`. La consulta sin cualificar falla con `relation "orders" does not exist`.
+- **Por qué importa:** `verifyBackup` (validación de restaurabilidad) contaba mal y devolvía `verify_failed`.
+- **Fix:** consultar cualificado (`FROM public.${name}`) en `restore-verify.ts`, con comentario del porqué.
 
 ### H-011 — `drizzle-kit` crashea con los shadow files `._*`
 

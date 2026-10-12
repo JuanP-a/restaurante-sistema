@@ -33,6 +33,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           <Link href="/admin/delivery-zones" className="text-gray-700">
             Zonas
           </Link>
+          <Link href="/admin/backup" className="text-gray-700">
+            Backups
+          </Link>
         </nav>
       </header>
       <main id="main" tabIndex={-1}>

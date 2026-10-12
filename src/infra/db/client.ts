@@ -1,6 +1,7 @@
 import { getEnv } from "@/env";
 import { createPostgresDb } from "@/infra/db/adapters/postgres";
 import type { Db } from "@/infra/db/types";
+import type { BackupSource } from "@/infra/backup/port";
 
 export type { Db } from "@/infra/db/types";
 
@@ -10,19 +11,23 @@ declare global {
   var __db: Db | undefined;
   // eslint-disable-next-line no-var
   var __dbInit: Promise<Db> | undefined;
+  // eslint-disable-next-line no-var
+  var __backupSource: BackupSource | null | undefined;
 }
 
 async function createDb(): Promise<Db> {
   const env = getEnv();
   if (env.DB_DRIVER === "pglite") {
     const { createPgliteDb } = await import("@/infra/db/adapters/pglite");
-    const { db } = await createPgliteDb({
+    const { db, backupSource } = await createPgliteDb({
       dataDir: env.DB_PATH,
       migrationsFolder: env.MIGRATIONS_PATH,
     });
+    globalThis.__backupSource = backupSource ?? null;
     return db;
   }
   if (!env.DATABASE_URL) throw new Error("DATABASE_URL requerida para DB_DRIVER=postgres");
+  globalThis.__backupSource = null;
   return createPostgresDb(env.DATABASE_URL).db;
 }
 
@@ -48,4 +53,10 @@ export function getDb(): Db {
     throw new Error("getDb() llamado antes de initDb(). Ver src/instrumentation.ts.");
   }
   return globalThis.__db;
+}
+
+// `null` cuando el driver es Postgres (cloud) o la DB aún no se inicializó:
+// el backup es una capacidad exclusiva de la versión desktop con PGlite.
+export function getBackupSource(): BackupSource | null {
+  return globalThis.__backupSource ?? null;
 }

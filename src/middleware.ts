@@ -8,6 +8,7 @@ const PROTECTED_PREFIXES = [
   "/api/orders",
   "/api/menu",
   "/api/delivery-zones",
+  "/api/backup",
   "/api/events",
 ];
 const PUBLIC_PATHS = ["/login", "/api/admin/login", "/api/webhooks/whatsapp"];
@@ -46,6 +47,7 @@ export const config = {
     "/api/orders/:path*",
     "/api/menu/:path*",
     "/api/delivery-zones/:path*",
+    "/api/backup/:path*",
     "/api/events",
   ],
   runtime: "nodejs",

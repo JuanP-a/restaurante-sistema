@@ -69,3 +69,21 @@ describe("parseEnv", () => {
     expect(env.WHATSAPP_BSP_API_KEY).toBe("");
   });
 });
+
+describe("env de backup", () => {
+  const base = {
+    DATABASE_URL: "postgres://x",
+    ADMIN_PASSWORD_HASH: "$2a$10$abcdefghijklmnopqrstuv",
+    SESSION_SECRET: "a".repeat(32),
+  };
+
+  it("usa defaults de backup", () => {
+    const env = parseEnv(base);
+    expect(env.BACKUP_DIR).toBe("./.data/backups");
+    expect(env.BACKUP_KEEP).toBe(7);
+  });
+
+  it("rechaza BACKUP_KEEP menor a 1", () => {
+    expect(() => parseEnv({ ...base, BACKUP_KEEP: "0" })).toThrow();
+  });
+});
