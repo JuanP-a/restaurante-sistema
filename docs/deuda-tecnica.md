@@ -17,7 +17,10 @@
 
 | ID | Área | Deuda | Prioridad | Esfuerzo | Estado | Origen |
 |----|------|-------|-----------|----------|--------|--------|
-| DT-022 | Desktop | `/admin/backup` sin `force-dynamic`: se prerenderiza como cloud y no aparece en el `.exe` | Alta | S | Abierta | [H-015](hallazgos.md) |
+| DT-047 | Desktop | `POST /api/setup` (one-shot) no es atómico: dos POST concurrentes en primer arranque pasan el guard (TOCTOU) | Baja | S | Abierta | Review seguridad |
+| DT-048 | Desktop | El instalador NSIS del `.exe` no se genera en macOS (makensis x86 sin Rosetta; el standalone debe construirse en Windows) → empaquetar y verificar en CI/Windows | Media | M | Abierta | Fase 4 |
+| DT-049 | Desktop | Verificar en Windows real que `SESSION_COOKIE_SECURE=false` llega al cookie (auto-login en LAN HTTP) | Media | S | Abierta | Review seguridad |
+| DT-022 | Desktop | `/admin/backup` sin `force-dynamic`: se prerenderiza como cloud y no aparece en el `.exe` | Alta | S | Resuelta | [H-015](hallazgos.md) |
 | DT-023 | Frontend | Dark-mode del SO vuelve ilegible la UI y los tickets (`bg-white` + `--foreground` claro) | Alta | S | Abierta | [H-016](hallazgos.md) |
 | DT-024 | WhatsApp | El bot no hidrata el producto: placeholder `name:"x"`/`basePrice:"0"` | Alta | M | Abierta | [H-017](hallazgos.md) |
 | DT-025 | Desktop | `runBackup` reporta éxito sin escribir en ningún destino (falso "Backup creado") | Alta | S | Abierta | [H-018](hallazgos.md) |
@@ -30,7 +33,7 @@
 | DT-032 | Arquitectura | `infra/db` depende de `infra/backup` (`DbHandle.backupSource`): seam mal ubicado | Media | S | Abierta | Review arquitectura |
 | DT-033 | Arquitectura | `infra/backup/http-routes.ts` acopla Next.js y aloja el composition root en `infra` | Media | S | Abierta | Review arquitectura |
 | DT-034 | Arquitectura | Identidad de negocio duplicada: `BUSINESS_*` (server) vs `NEXT_PUBLIC_BUSINESS_*` (client) | Media | S | Abierta | Review arquitectura |
-| DT-035 | Desktop | `drivelist`/`pglite-tools` fuera del `outputFileTracingIncludes` del standalone | Media | S | Abierta | [DT-008] / [DT-018] |
+| DT-035 | Desktop | `drivelist`/`pglite-tools` fuera del `outputFileTracingIncludes` del standalone | Media | S | Resuelta | [DT-008] / [DT-018] |
 | DT-036 | Frontend | Sin manejo de errores de fetch: botones "pegados" y fallos silenciosos (login, nuevo pedido, categorías, zonas) | Media | M | Abierta | Review frontend |
 | DT-037 | Frontend | Páginas de impresión: "Cargando…" infinito sin `.catch` y duplicación kitchen/bill | Media | M | Abierta | Review frontend |
 | DT-038 | Frontend | Sin `error.tsx`/`not-found.tsx`/`loading.tsx` en la app | Media | S | Abierta | Review frontend |
@@ -49,8 +52,8 @@
 | DT-005 | Feature | Import de menú: `includes`/`extras`/`optionGroups` se parsean pero no persisten | Media | M | Abierta | Import menú |
 | DT-006 | Deps | Override de `sharp` (módulo nativo) — riesgo de binario en deploy | Media | S | Abierta | [ADR 0004](../decisions/0004-pnpm-overrides-advisories.md) |
 | DT-007 | Seguridad | 1 advisory **moderate** residual (bajo el umbral `high`) | Baja | S | Abierta | [H-007](hallazgos.md) |
-| DT-008 | Desktop | Verificar que `drizzle/` + WASM PGlite viajan en el bundle standalone | Media | S | Abierta | Fase 4; ver [DT-035] |
-| DT-011 | Desktop | Cookie `secure` en HTTP intranet rompe login | Media | S | Abierta | Plan desktop R6 |
+| DT-008 | Desktop | Verificar que `drizzle/` + WASM PGlite viajan en el bundle standalone | Media | S | Resuelta | Fase 4; ver [DT-035] |
+| DT-011 | Desktop | Cookie `secure` en HTTP intranet rompe login | Media | S | Resuelta | Plan desktop R6 |
 | DT-015 | Desktop | Fases desktop sin plan escrito; Fases 3 y 4 ya tienen plan, falta 5 (túnel) | Media | M | En progreso | Plan maestro |
 | DT-016 | Testing | Anti-doble-impresión en `/print/...` sin test automático (solo typecheck) | Media | S | Abierta | Fase 2 |
 | DT-017 | API | `id` malformado (no-UUID) en rutas de pedido → 500 en vez de 404 | Baja | S | Abierta | Fase 2 |
@@ -68,12 +71,48 @@
 
 ## Detalle
 
+### DT-047 — `POST /api/setup` no es atómico (TOCTOU)
+
+- **Qué:** el handler lee `getAdminPasswordHash()` y solo después escribe el hash; dos POST concurrentes en la ventana de primer arranque pueden pasar ambos el guard y setear la contraseña dos veces (gana el último).
+- **Por qué importa:** es la puerta pública del wizard; en LAN HTTP, durante esa ventana, una carrera podría dejar el hash que eligió otro. Impacto real bajo (host local restringe el endpoint), pero el patrón es incorrecto.
+- **Fix propuesto:** hacer el set atómico (`INSERT ... ON CONFLICT DO NOTHING` sobre `settings` y tratar `rowCount === 0` como `already_setup`), o serializar con un lock en el composition root.
+- **Criterio de cierre:** dos POST concurrentes → exactamente uno responde 200 y el otro 409.
+
+### DT-048 — El instalador NSIS no se genera en macOS
+
+- **Qué:** `pnpm electron:dist` corre `electron-builder --win` desde macOS; `makensis` es un binario x86_64 y este Mac (Apple Silicon) no tiene Rosetta, así que el instalador NSIS no se produce. `electron-builder` tampoco puede empaquetar Windows nativo desde macOS de forma fiable.
+- **Por qué importa:** el artefacto de entrega de la Fase 4 es el `.exe`; sin CI/Windows no hay build reproducible del instalador.
+- **Fix propuesto:** job de CI en `windows-latest` que corra `pnpm build && pnpm electron:compile && electron-builder`. Ver el runbook manual de Task 17 como criterio de cierre.
+- **Criterio de cierre:** `dist/*.exe` generado en CI/Windows y verificado con el runbook.
+
+### DT-049 — Verificar `SESSION_COOKIE_SECURE=false` en Windows HTTP
+
+- **Qué:** el shell setea `SESSION_COOKIE_SECURE=false` para LAN HTTP, pero no se verificó en Windows real que el cookie llegue sin `Secure` y que el auto-login funcione.
+- **Por qué importa:** es el fix de [DT-011]; si el shell no pasa la variable o Next la ignora, el login falla en silencio sobre HTTP (mismo síntoma original).
+- **Fix propuesto:** en el runbook de Windows, inspeccionar el `Set-Cookie` del wizard/login y confirmar que el cookie se guarda y autoriza.
+- **Criterio de cierre:** tras el wizard, `/admin/orders` carga sin volver a `/login` sobre `http://<ip-LAN>`.
+
+### DT-008 — WASM de PGlite y migraciones en el bundle standalone
+
+- **Qué:** verificar que `drizzle/` y el WASM de `@electric-sql/pglite` viajan en `.next/standalone`.
+- **Por qué importa:** sin ellos el `.exe` no arranca (no encuentra migraciones o el módulo WASM).
+- **Fix propuesto:** `outputFileTracingIncludes` explícito (las rutas de PGlite son dinámicas y el tracer no las ve).
+- **Resolución (2026-10-11, `feat/desktop-fase-4-electron-shell`):** `next.config.ts` incluye `drizzle/`, `@electric-sql/pglite`, `@electric-sql/pglite-tools` y `drivelist` (Task 10); verificado en el payload empaquetado (Task 16).
+
+### DT-011 — Cookie `secure` rompe el login en HTTP intranet
+
+- **Qué:** el login derivaba `secure` de `NODE_ENV === "production"`; en la LAN HTTP de escritorio, un cookie `Secure` no se guarda y el login falla en silencio.
+- **Por qué importa:** bloqueaba el uso del panel por el celular en la red del local.
+- **Fix propuesto:** una var explícita `SESSION_COOKIE_SECURE` (default `true` para cloud; el shell setea `false`).
+- **Resolución (2026-10-11, `feat/desktop-fase-4-electron-shell`):** renombrada a `SESSION_COOKIE_SECURE`; login y `/api/setup` la consumen y el shell la setea en `false` (Tasks 1-2). Verificación en Windows pendiente → [DT-049].
+
 ### DT-022 — `/admin/backup` sin `force-dynamic`
 
 - **Qué:** `src/app/admin/backup/page.tsx` no declara `export const dynamic = "force-dynamic"`. En `next build` sin DB, `getBackupSource()` devuelve `null` y Next hornea el branch "solo escritorio" como estático (ver [H-015](hallazgos.md)).
 - **Por qué importa:** en el `.exe` (Fase 4) la UI de backup nunca se muestra, pese a que el endpoint existe.
 - **Fix propuesto:** añadir `export const dynamic = "force-dynamic";` (o `await connection()`), igual que `orders/page.tsx:12` y `menu/page.tsx:9`.
 - **Criterio de cierre:** en un build standalone con `backupSource` presente, `/admin/backup` renderiza la UI.
+- **Resolución (2026-10-11, `feat/desktop-fase-4-electron-shell`):** aplicado en Task 3 con test de contrato (`src/env.test.ts`).
 
 ### DT-023 — Dark-mode rompe contraste de UI y tickets
 
@@ -165,6 +204,7 @@
 - **Por qué importa:** R3 se creyó mitigado; el `.exe` perdería detección USB y, potencialmente, el `pgDump`.
 - **Fix propuesto:** añadir ambos a `outputFileTracingIncludes`/`serverExternalPackages`; verificar en el `.exe`. Encadenar con [DT-008] y [DT-018].
 - **Criterio de cierre:** el build de escritorio incluye ambos módulos.
+- **Resolución (2026-10-11, `feat/desktop-fase-4-electron-shell`):** `next.config.ts` agrega `@electric-sql/pglite-tools` y `drivelist` a `outputFileTracingIncludes` y `serverExternalPackages` (Task 10). Verificado en el payload empaquetado.
 
 ### DT-036 — Manejo de errores de fetch en el frontend
 
