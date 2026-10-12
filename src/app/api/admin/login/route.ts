@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getEnv } from "@/env";
+import { startAdminSession } from "@/infra/auth/admin-session";
 import { verifyPassword } from "@/infra/auth/password";
-import { createSessionToken, SESSION_COOKIE } from "@/infra/auth/session";
-import { getDb } from "@/infra/db/client";
-import { adminSessions } from "@/infra/db/schema";
+import { SESSION_COOKIE } from "@/infra/auth/session";
 import { getAdminPasswordHash } from "@/infra/db/settings-repository";
 import { createRateLimiter } from "@/infra/security/rate-limit";
 
@@ -55,10 +54,7 @@ export async function POST(req: NextRequest) {
     );
   }
   loginLimiter.reset(ip);
-  const token = createSessionToken(env.SESSION_SECRET);
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  const db = getDb();
-  await db.insert(adminSessions).values({ token, expiresAt });
+  const { token, expiresAt } = await startAdminSession(env.SESSION_SECRET);
   const res = NextResponse.json({ ok: true });
   res.cookies.set(SESSION_COOKIE, token, {
     httpOnly: true,

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { parseErrorMessage } from "@/types/api-schemas";
 import { Button } from "@/ui/Button";
 import { ErrorMessage } from "@/ui/ErrorMessage";
 import { Input } from "@/ui/Input";
@@ -23,18 +24,7 @@ export function SetupForm() {
         body: JSON.stringify({ password }),
       });
       if (!res.ok) {
-        const body: unknown = await res.json().catch(() => null);
-        const message =
-          typeof body === "object" &&
-          body !== null &&
-          "error" in body &&
-          typeof body.error === "object" &&
-          body.error !== null &&
-          "message" in body.error &&
-          typeof body.error.message === "string"
-            ? body.error.message
-            : "No se pudo guardar la contraseña";
-        setError(message);
+        setError(await parseErrorMessage(res));
         return;
       }
       router.push("/admin/orders");

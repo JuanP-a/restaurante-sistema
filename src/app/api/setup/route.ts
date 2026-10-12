@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
+import { getEnv } from "@/env";
 import { validatePassword } from "@/core/settings/setup";
+import { startAdminSession } from "@/infra/auth/admin-session";
 import { hashPassword } from "@/infra/auth/password";
+import { SESSION_COOKIE } from "@/infra/auth/session";
 import {
   SETUP_COMPLETED_KEY,
   getAdminPasswordHash,
@@ -9,7 +12,11 @@ import {
 } from "@/infra/db/settings-repository";
 
 export async function POST(req: Request) {
-  if (await getAdminPasswordHash()) {
+  const env = getEnv();
+  // No permitir setup si ya hay hash en cualquier fuente. En cloud el hash vive
+  // en env y `settings` está vacía: sin este chequeo, el endpoint público
+  // permitiría a cualquiera fijar un hash que el login luego prioriza.
+  if ((await getAdminPasswordHash()) || env.ADMIN_PASSWORD_HASH) {
     return NextResponse.json(
       { ok: false, error: { code: "already_setup", message: "La contraseña ya está configurada" } },
       { status: 409 },
@@ -38,5 +45,14 @@ export async function POST(req: Request) {
 
   await setAdminPasswordHash(await hashPassword(password));
   await setSetting(SETUP_COMPLETED_KEY, new Date().toISOString());
-  return NextResponse.json({ ok: true });
+  const { token, expiresAt } = await startAdminSession(env.SESSION_SECRET);
+  const res = NextResponse.json({ ok: true });
+  res.cookies.set(SESSION_COOKIE, token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: env.SESSION_COOKIE_SECURE,
+    expires: expiresAt,
+    path: "/",
+  });
+  return res;
 }
