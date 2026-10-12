@@ -42,6 +42,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           <Link href="/admin/backup" className="text-gray-700">
             Backups
           </Link>
+          <Link href="/admin/conectar" className="text-gray-700">
+            Conectar
+          </Link>
         </nav>
       </header>
       <main id="main" tabIndex={-1}>
