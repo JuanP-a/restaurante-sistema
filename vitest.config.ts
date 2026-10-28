@@ -12,6 +12,9 @@ export default defineConfig({
     ],
     exclude: ["node_modules", ".next", "tests/e2e/**", "**/._*"],
     setupFiles: ["./vitest.setup.ts"],
+    // PGlite arranca un worker WASM por test; en Windows eso pasa de los 5 s
+    // por defecto (dump/restore son los más lentos).
+    testTimeout: 30000,
   },
   resolve: { alias: { "@": path.resolve(__dirname, "./src") } },
 });
