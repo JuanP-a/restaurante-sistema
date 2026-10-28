@@ -30,6 +30,10 @@
 # production
 /build
 
+# desktop packaging (Fase 4)
+/dist-electron
+/dist
+
 # misc
 .DS_Store
 ._*
