@@ -15,6 +15,13 @@ export function createPgliteBackupSource(client: PGlite): BackupSource {
           kind: "dump_failed",
           message: cause instanceof Error ? cause.message : "dump falló",
         });
+      } finally {
+        // pg_dump deja ABIERTA una transacción read-only en el cliente
+        // compartido (transaction_read_only=on). Hay que cerrarla con COMMIT
+        // —ROLLBACK descarta lo escrito antes— y restaurar el flag, o todo
+        // INSERT posterior falla y la app queda inservible hasta reiniciarla.
+        await client.exec("COMMIT").catch(() => {});
+        await client.exec("SET default_transaction_read_only = off").catch(() => {});
       }
     },
   };
