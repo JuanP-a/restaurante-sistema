@@ -120,3 +120,10 @@ describe("login usa SESSION_COOKIE_SECURE (no NODE_ENV)", () => {
     expect(src).not.toContain('NODE_ENV === "production"');
   });
 });
+
+describe("páginas que leen infraestructura son force-dynamic", () => {
+  it("/admin/backup declara force-dynamic", () => {
+    const src = readFileSync("src/app/admin/backup/page.tsx", "utf8");
+    expect(src).toContain('export const dynamic = "force-dynamic"');
+  });
+});

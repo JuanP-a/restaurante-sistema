@@ -6,6 +6,10 @@ import { PageContainer } from "@/ui/PageContainer";
 import { PageHeading } from "@/ui/PageHeading";
 import { BackupActions, type BackupListing } from "./backup-actions";
 
+// Lee getBackupSource()/getEnv() en runtime; sin esto el build prerenderiza el
+// branch "solo escritorio" como HTML estático y la feature desaparece en el .exe.
+export const dynamic = "force-dynamic";
+
 export default async function BackupPage() {
   if (!getBackupSource()) {
     return (
