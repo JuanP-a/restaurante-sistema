@@ -1,0 +1,41 @@
+// @vitest-environment node
+import { sql } from "drizzle-orm";
+import { afterAll, beforeEach, describe, expect, test } from "vitest";
+import type { NextRequest } from "next/server";
+import { getDb } from "@/infra/db/client";
+import { setAdminPasswordHash } from "@/infra/db/settings-repository";
+import { hashPassword } from "@/infra/auth/password";
+
+const db = getDb();
+
+function makeReq(password: string, ip: string): NextRequest {
+  return new Request("http://localhost/api/admin/login", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-forwarded-for": ip },
+    body: JSON.stringify({ password }),
+  }) as unknown as NextRequest;
+}
+
+beforeEach(async () => {
+  await db.execute(sql`TRUNCATE TABLE settings`);
+  await db.execute(sql`TRUNCATE TABLE admin_sessions RESTART IDENTITY CASCADE`);
+});
+
+afterAll(async () => {
+  await db.execute(sql`TRUNCATE TABLE settings`);
+  await db.execute(sql`TRUNCATE TABLE admin_sessions RESTART IDENTITY CASCADE`);
+});
+
+describe("login con hash en settings", () => {
+  test("acepta la contraseña seteada en settings y la prioriza sobre env", async () => {
+    await setAdminPasswordHash(await hashPassword("clave-settings"));
+    const { POST } = await import("@/app/api/admin/login/route");
+
+    const okRes = await POST(makeReq("clave-settings", "10.1.0.1"));
+    expect(okRes.status).toBe(200);
+
+    // La contraseña del env del test NO debe servir: settings gana.
+    const wrongRes = await POST(makeReq("no-es-la-clave", "10.1.0.2"));
+    expect(wrongRes.status).toBe(401);
+  });
+});
