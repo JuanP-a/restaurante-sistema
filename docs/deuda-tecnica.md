@@ -17,7 +17,7 @@
 
 | ID | Área | Deuda | Prioridad | Esfuerzo | Estado | Origen |
 |----|------|-------|-----------|----------|--------|--------|
-| DT-022 | Desktop | `/admin/backup` sin `force-dynamic`: se prerenderiza como cloud y no aparece en el `.exe` | Alta | S | Resuelta (2026-10-28) | [H-015](hallazgos.md) |
+| DT-022 | Desktop | `/admin/backup` sin `force-dynamic`: se prerenderiza como cloud y no aparece en el `.exe` | Alta | S | Resuelta (2026-10-28, #46) | [H-015](hallazgos.md) |
 | DT-023 | Frontend | Dark-mode del SO vuelve ilegible la UI y los tickets (`bg-white` + `--foreground` claro) | Alta | S | Abierta | [H-016](hallazgos.md) |
 | DT-024 | WhatsApp | El bot no hidrata el producto: placeholder `name:"x"`/`basePrice:"0"` | Alta | M | Abierta | [H-017](hallazgos.md) |
 | DT-025 | Desktop | `runBackup` reporta éxito sin escribir en ningún destino (falso "Backup creado") | Alta | S | Abierta | [H-018](hallazgos.md) |
@@ -30,7 +30,7 @@
 | DT-032 | Arquitectura | `infra/db` depende de `infra/backup` (`DbHandle.backupSource`): seam mal ubicado | Media | S | Abierta | Review arquitectura |
 | DT-033 | Arquitectura | `infra/backup/http-routes.ts` acopla Next.js y aloja el composition root en `infra` | Media | S | Abierta | Review arquitectura |
 | DT-034 | Arquitectura | Identidad de negocio duplicada: `BUSINESS_*` (server) vs `NEXT_PUBLIC_BUSINESS_*` (client) | Media | S | Abierta | Review arquitectura |
-| DT-035 | Desktop | `drivelist`/`pglite-tools` fuera del `outputFileTracingIncludes` del standalone | Media | S | Resuelta (2026-10-28) | [DT-008] / [DT-018] |
+| DT-035 | Desktop | `drivelist`/`pglite-tools` fuera del `outputFileTracingIncludes` del standalone | Media | S | Resuelta (2026-10-28, #46) | [DT-008] / [DT-018] |
 | DT-036 | Frontend | Sin manejo de errores de fetch: botones "pegados" y fallos silenciosos (login, nuevo pedido, categorías, zonas) | Media | M | Abierta | Review frontend |
 | DT-037 | Frontend | Páginas de impresión: "Cargando…" infinito sin `.catch` y duplicación kitchen/bill | Media | M | Abierta | Review frontend |
 | DT-038 | Frontend | Sin `error.tsx`/`not-found.tsx`/`loading.tsx` en la app | Media | S | Abierta | Review frontend |
@@ -49,8 +49,8 @@
 | DT-005 | Feature | Import de menú: `includes`/`extras`/`optionGroups` se parsean pero no persisten | Media | M | Abierta | Import menú |
 | DT-006 | Deps | Override de `sharp` (módulo nativo) — riesgo de binario en deploy | Media | S | Abierta | [ADR 0004](../decisions/0004-pnpm-overrides-advisories.md) |
 | DT-007 | Seguridad | 1 advisory **moderate** residual (bajo el umbral `high`) | Baja | S | Abierta | [H-007](hallazgos.md) |
-| DT-008 | Desktop | Verificar que `drizzle/` + WASM PGlite viajan en el bundle standalone | Media | S | Resuelta (2026-10-28) | Fase 4; ver [DT-035] |
-| DT-011 | Desktop | Cookie `secure` en HTTP intranet rompe login | Media | S | Resuelta (2026-10-28) | Plan desktop R6 |
+| DT-008 | Desktop | Verificar que `drizzle/` + WASM PGlite viajan en el bundle standalone | Media | S | Resuelta (2026-10-28, #46) | Fase 4; ver [DT-035] |
+| DT-011 | Desktop | Cookie `secure` en HTTP intranet rompe login | Media | S | Resuelta (2026-10-28, #46) | Plan desktop R6 |
 | DT-015 | Desktop | Fases desktop sin plan escrito; Fases 3 y 4 ya tienen plan, falta 5 (túnel) | Media | M | En progreso | Plan maestro |
 | DT-016 | Testing | Anti-doble-impresión en `/print/...` sin test automático (solo typecheck) | Media | S | Abierta | Fase 2 |
 | DT-017 | API | `id` malformado (no-UUID) en rutas de pedido → 500 en vez de 404 | Baja | S | Abierta | Fase 2 |
@@ -70,7 +70,7 @@
 
 ### DT-022 - `/admin/backup` sin `force-dynamic`
 
-- **Resuelta (2026-10-28):** `export const dynamic = "force-dynamic"` en la página, con test de contrato en `src/env.test.ts`. Verificado en el `.exe`: `/admin/backup` renderiza la UI de escritorio.
+- **Resuelta (2026-10-28, #46):** `export const dynamic = "force-dynamic"` en la página, con test de contrato en `src/env.test.ts`. Verificado en el `.exe`: `/admin/backup` renderiza la UI de escritorio.
 
 - **Qué:** `src/app/admin/backup/page.tsx` no declara `export const dynamic = "force-dynamic"`. En `next build` sin DB, `getBackupSource()` devuelve `null` y Next hornea el branch "solo escritorio" como estático (ver [H-015](hallazgos.md)).
 - **Por qué importa:** en el `.exe` (Fase 4) la UI de backup nunca se muestra, pese a que el endpoint existe.
@@ -163,7 +163,7 @@
 
 ### DT-035 - `drivelist`/`pglite-tools` fuera del trace standalone
 
-- **Resuelta (2026-10-28):** ambos entran en `outputFileTracingIncludes` y `serverExternalPackages`; además el empaquetado aplana el standalone a `vendor/` (ver [H-023](hallazgos.md)) porque electron-builder descarta `node_modules` en `extraResources`. `pglite-tools` verificado dentro del `.exe`.
+- **Resuelta (2026-10-28, #46):** ambos entran en `outputFileTracingIncludes` y `serverExternalPackages`; además el empaquetado aplana el standalone a `vendor/` (ver [H-023](hallazgos.md)) porque electron-builder descarta `node_modules` en `extraResources`. `pglite-tools` verificado dentro del `.exe`.
 
 - **Qué:** `next.config.ts` incluye `./drizzle/**` y PGlite, pero no `drivelist` (import dinámico) ni `@electric-sql/pglite-tools`.
 - **Por qué importa:** R3 se creyó mitigado; el `.exe` perdería detección USB y, potencialmente, el `pgDump`.
