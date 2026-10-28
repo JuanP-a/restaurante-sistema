@@ -24,5 +24,6 @@ describe("createPgliteBackupSource", () => {
     expect(result.value).toContain("CREATE TABLE");
     expect(result.value).toContain("INSERT INTO");
     expect(result.value).toContain("taco");
-  });
+    // PGlite dump arranca un worker WASM; en Windows supera los 5 s por defecto.
+  }, 30000);
 });
