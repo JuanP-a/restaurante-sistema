@@ -100,6 +100,13 @@ describe("env de Fase 4 (desktop)", () => {
     expect(env.ADMIN_PASSWORD_HASH).toBeUndefined();
   });
 
+  // Un `ADMIN_PASSWORD_HASH=` vacío en el .env.local del local (antes del
+  // wizard) no puede tumbar el arranque ni contar como hash configurado.
+  it("ADMIN_PASSWORD_HASH vacío cuenta como no configurado", () => {
+    const env = parseEnv({ ...base, ADMIN_PASSWORD_HASH: "" });
+    expect(env.ADMIN_PASSWORD_HASH).toBeUndefined();
+  });
+
   it("SESSION_COOKIE_SECURE default true y parsea 'false'", () => {
     expect(parseEnv(base).SESSION_COOKIE_SECURE).toBe(true);
     expect(parseEnv({ ...base, SESSION_COOKIE_SECURE: "false" }).SESSION_COOKIE_SECURE).toBe(false);

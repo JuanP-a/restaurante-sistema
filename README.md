@@ -133,6 +133,17 @@ docs/
 └── decisions/                    # ADRs
 ```
 
+## Versión de escritorio (Windows)
+
+Misma app, distribuida como `.exe` para locales sin nube: server Next + PGlite corriendo en la máquina, accesible por LAN.
+
+1. `pnpm electron:dist` genera `dist/Sistema de Pedidos Setup <versión>.exe` (NSIS).
+2. Instalar y aceptar el prompt del Firewall de Windows (redes privadas) para que el celular pueda entrar.
+3. Primer arranque → pantalla `/setup`: definir la contraseña del panel (queda en la DB, no en un archivo de entorno).
+4. `/admin/conectar` muestra un QR con la URL de la LAN; escanearlo desde un celular en la misma WiFi.
+5. Los backups se escriben en `Documentos/restaurante-backups` (la UI de `/admin/backup` sigue disponible).
+6. El panel vive en la bandeja del sistema: cerrar la ventana no apaga el server; "Salir" del tray sí.
+
 ## Deploy
 
 1. Crear Web Service en [Render](https://render.com) conectando este repo

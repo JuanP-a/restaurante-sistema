@@ -12,10 +12,12 @@ const envSchema = z
     PRINTER_PORT: z.coerce.number().int().min(1).max(65535).default(9100),
     // Opcional: en desktop el hash lo setea el wizard de primer arranque y vive
     // en la tabla `settings`. En cloud sigue viniendo de env.
-    ADMIN_PASSWORD_HASH: z
-      .string()
-      .regex(/^\$2[aby]\$10\$.+/, "debe ser hash bcrypt")
-      .optional(),
+    // Vacío cuenta como "no configurado": es lo que queda en el .env.local del
+    // local antes de pasar por el wizard.
+    ADMIN_PASSWORD_HASH: z.preprocess(
+      (value) => (value === "" ? undefined : value),
+      z.string().regex(/^\$2[aby]\$10\$.+/, "debe ser hash bcrypt").optional(),
+    ),
     SESSION_COOKIE_SECURE: z
       .enum(["true", "false"])
       .default("true")

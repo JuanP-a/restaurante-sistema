@@ -16,6 +16,7 @@
     "test:unit": "vitest run --passWithNoTests --no-file-parallelism --exclude 'tests/integration/**'",
     "test:integration": "cross-env VITEST_INIT_DB=1 vitest run --passWithNoTests --no-file-parallelism tests/integration",
     "test:watch": "cross-env VITEST_INIT_DB=1 vitest --no-file-parallelism",
+    "test:e2e": "playwright test",
     "test:coverage": "cross-env VITEST_INIT_DB=1 vitest run --coverage --passWithNoTests --no-file-parallelism",
     "typecheck": "tsc --noEmit",
     "drizzle:generate": "drizzle-kit generate",

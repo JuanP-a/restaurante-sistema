@@ -16,6 +16,8 @@
 
 | ID | Fecha | Hallazgo | Impacto | Documentado en |
 |----|-------|----------|---------|----------------|
+| H-023 | 2026-10-28 | electron-builder no copia junctions de pnpm ni `node_modules` en `extraResources`: el standalone necesita un `vendor/` hoisted | Alto | [DT-035](deuda-tecnica.md) |
+| H-022 | 2026-10-28 | `utilityProcess.fork` + PGlite (WASM) muere sin escribir en stdout; `ELECTRON_RUN_AS_NODE` sí funciona | Medio | [DT-018](deuda-tecnica.md) |
 | H-021 | 2026-10-11 | `validateNewOrder` no valida la *forma* de `items`/`serviceType` → 500 en vez de 400 | Medio | [DT-028](deuda-tecnica.md) |
 | H-020 | 2026-10-11 | `admin_sessions` nunca se consulta: el logout no invalida tokens (HMAC stateless) | Medio | [DT-027](deuda-tecnica.md) |
 | H-019 | 2026-10-11 | `verifyBackup` crea una 2ª instancia PGlite (churn) coexistiendo con la long-lived | Medio | [DT-026](deuda-tecnica.md), [H-001](#h-001--pglite-single-connection-y-concurrencia) |
@@ -42,7 +44,21 @@
 
 ## Detalle
 
-### H-021 — `validateNewOrder` valida presencia, no forma
+### H-023 - electron-builder no copia junctions de pnpm ni `node_modules` en `extraResources`
+
+- **Qué esperábamos:** `extraResources: from .next/standalone` copiaría el server standalone completo al `.exe`.
+- **Qué pasó:** el `.exe` arrancaba y el hijo moría con `Cannot find module 'next'`. Dos causas encadenadas: (1) `extraResources` **descarta cualquier `node_modules`**, y (2) en pnpm `.next/standalone/node_modules/next` es un **junction** al store `.pnpm`, que electron-builder no sigue. Copiar con `dereference` tampoco alcanza: `next` resuelve sus hermanos (`@swc/helpers`) desde `.pnpm/next@x/node_modules/`, contexto que se pierde al aplanar. Y el store tiene entradas **parciales** (solo `package.json`) para peers, así que hoistear "la primera que aparezca" dejó `pg-protocol` sin `dist/`.
+- **Por qué importa:** el `.exe` es el entregable de la Fase 4; sin esto el instalador se genera igual y falla al abrir.
+- **Fix:** `scripts/pack-standalone.mjs` aplana el standalone a `dist-standalone/` con `vendor/` hoisted (eligiendo la entrada más completa por paquete) y el shell pasa `NODE_PATH` al hijo. Verificado: `/api/health` 200, `/` → `/setup`, setup y login 200.
+
+### H-022 - `utilityProcess.fork` + PGlite muere en silencio
+
+- **Qué esperábamos:** `utilityProcess.fork` (Node embebido de Electron) correría el `server.js` standalone sin runtime aparte, como recomienda la doc.
+- **Qué pasó:** el proceso hijo terminaba al instante **sin escribir nada** en stdout/stderr; el shell solo veía "server hijo terminó inesperadamente" y reintentaba. Con `child_process.spawn(process.execPath, ..., { ELECTRON_RUN_AS_NODE: "1" })` el mismo `server.js` arranca bien (es Node puro, el entorno donde ya estaba probado).
+- **Por qué importa:** un fallo sin logs en el proceso que sirve la app es indebuggeable desde el `.exe`; además el reintento enmascara la causa.
+- **Fix:** `electron/main.ts` usa `ELECTRON_RUN_AS_NODE` y **pipea** stdout/stderr del hijo a `console` con prefijo `[server:out]`/`[server:err]`.
+
+### H-021 - `validateNewOrder` valida presencia, no forma
 
 - **Qué esperábamos:** un body malformado se rechazaría con 400 (la ruta llamaba `validateNewOrder` y ya existían schemas Zod).
 - **Qué pasó:** `validateNewOrder` solo chequea `!input.items || input.items.length === 0`; un `items` no-array (número/objeto) hace `items.length === undefined` → pasa, y `for (const it of body.items)` lanza `TypeError` → **500**. `serviceType` tampoco se valida contra el enum → 500 al insertar. El cast `(await req.json()) as IncomingOrder` (`api/orders/route.ts:37`) evita que `tsc` lo detecte.

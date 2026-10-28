@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
+import { getEnv } from "@/env";
 import { validatePassword } from "@/core/settings/setup";
 import { hashPassword } from "@/infra/auth/password";
+import { createSessionToken, SESSION_COOKIE } from "@/infra/auth/session";
+import { getDb } from "@/infra/db/client";
+import { adminSessions } from "@/infra/db/schema";
 import {
   SETUP_COMPLETED_KEY,
   getAdminPasswordHash,
@@ -38,5 +42,21 @@ export async function POST(req: Request) {
 
   await setAdminPasswordHash(await hashPassword(password));
   await setSetting(SETUP_COMPLETED_KEY, new Date().toISOString());
-  return NextResponse.json({ ok: true });
+
+  // Dejar la sesión abierta: acá el operador está parado frente al local
+  // recién instalado, no hay nada que ganar mandándolo a /login.
+  const env = getEnv();
+  const token = createSessionToken(env.SESSION_SECRET);
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  await getDb().insert(adminSessions).values({ token, expiresAt });
+
+  const res = NextResponse.json({ ok: true });
+  res.cookies.set(SESSION_COOKIE, token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: env.SESSION_COOKIE_SECURE,
+    expires: expiresAt,
+    path: "/",
+  });
+  return res;
 }

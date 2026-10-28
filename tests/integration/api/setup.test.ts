@@ -38,4 +38,15 @@ describe("POST /api/setup", () => {
     const res = await POST(post({ password: "123" }));
     expect(res.status).toBe(400);
   });
+
+  // El wizard es el primer arranque del local: dejar al operador en /login
+  // justo después de definir la contraseña es fricción gratis.
+  test("deja sesión iniciada (cookie) al terminar el setup", async () => {
+    const { POST } = await import("@/app/api/setup/route");
+    const res = await POST(post({ password: "clave-dura" }));
+    expect(res.status).toBe(200);
+    const cookie = res.headers.get("set-cookie") ?? "";
+    expect(cookie).toContain("admin_session=");
+    expect(cookie.toLowerCase()).toContain("httponly");
+  });
 });

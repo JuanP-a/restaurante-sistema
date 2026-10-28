@@ -90,6 +90,16 @@ pnpm dev                          # arranca Next.js en :3000
 
 > Requiere Docker Desktop corriendo. Sin Docker activo, `pnpm drizzle:migrate` y los tests de integración fallarán con error de conexión.
 
+### Versión de escritorio (Fase 4)
+
+```bash
+pnpm build                       # standalone en .next/standalone
+pnpm electron:start              # shell Electron apuntando al standalone
+pnpm electron:dist               # instalador NSIS en dist/*.exe
+```
+
+El `.exe` no usa `.env.local`: al primer arranque muestra `/setup` para definir la contraseña (se guarda como hash en la tabla `settings`), levanta el server en `127.0.0.1:3210` (con fallback de puerto) y sirve la LAN en `0.0.0.0`. La config vive en `%APPDATA%/Sistema de Pedidos/config.json` (sessionSecret + último puerto) y la DB PGlite en `%APPDATA%/Sistema de Pedidos/pglite`. Los backups van a `Documentos/restaurante-backups`.
+
 ### Mantenimiento: shadow files de macOS
 
 El proyecto vive en un volumen externo (`/Volumes/M2 Mac/`) que no soporta atributos extendidos de APFS de forma nativa. macOS compensa creando archivos `._*` (AppleDouble) junto a cada archivo real — ensucian el IDE y pueden romper herramientas que asumen UTF-8 limpio (vitest fallaba con `PARSE_ERROR` hasta que los excluimos del glob de tests).
@@ -195,6 +205,10 @@ pnpm why <paquete>                   # de quién cuelga la dep vulnerable
 - `pnpm drizzle:generate` — generar migración desde schema
 - `pnpm drizzle:migrate` — aplicar migraciones
 - `pnpm db:seed` — sembrar datos de ejemplo
+- `pnpm test:e2e` — Playwright (wizard de setup + superficie pública)
+- `pnpm electron:compile` — compila `electron/` a `dist-electron/`
+- `pnpm electron:start` — shell Electron en dev (requiere `pnpm build` previo)
+- `pnpm electron:dist` — build + `pack-standalone` + instalador NSIS en `dist/`
 
 > Usar **pnpm**, no npm. (Configurado en AGENTS.md global del usuario.)
 
@@ -249,8 +263,8 @@ Producto con **dos formas de distribuir, un solo código**: versión web/cloud (
 - ✅ **Desktop Fase 1** (puerto DB + PGlite embebido): puerto `Db` con adapters `postgres`/`pglite` (`DB_DRIVER`), `initDb`/`getDb` + boot en `src/instrumentation.ts`, migración en boot, suite de integración sobre **PGlite in-memory sin Docker**, secuencia desacoplada del driver, y build que empaqueta `drizzle/` + `@electric-sql/pglite` (`output: "standalone"`). **PR [#19](https://github.com/JuanP-a/restaurante-sistema/pull/19) squash-merged.** Ver ADR [`0002`](docs/decisions/0002-puerto-db-pglite.md). **169 tests verde + 1 skipped** (contrato Postgres opt-in). Retro-compatible: default `DB_DRIVER=postgres`, `render.yaml` intacto.
 - ✅ **Desktop Fase 2** (impresión ESC/POS server-side): renderer puro en `src/core/printing/` (CP850 + comandos ESC/POS + tickets 48 cols) + puerto `PrintTransport` con adapters `tcp`/`fake` + `print-service` (reintentos 3× con backoff + eventos `printed_kitchen`/`printed_bill`/`print_failed`) + endpoints `print-kitchen`/`print-bill` con auto-detect por `PRINTER_HOST` (server-side vs fallback al navegador) + anti-doble-impresión en `/print/...`. Migración `event_kind += print_failed`. **210 tests verde + 1 skipped**. Spec [`2026-10-07-desktop-02-print-escpos-design.md`](docs/superpowers/specs/2026-10-07-desktop-02-print-escpos-design.md), plan [`2026-10-03-desktop-02-print-escpos.md`](docs/superpowers/plans/2026-10-03-desktop-02-print-escpos.md).
 - ✅ **Desktop Fase 3** (backups, manual): core puro (`backupFileName`, `selectForDeletion`) + puerto `BackupSource`/`BackupDestination` con adapters PGlite (`pgDump`), carpeta fs (valida nombre → sin path traversal) y USB vía `drivelist` (import lazy, degrada a `[]`) + `runBackup` (escritura multi-destino con éxito parcial + rotación) + `verifyBackup` (restaura el dump en PGlite temporal y cuenta filas) + `getBackupSource` en el puerto DB (null en cloud → 409) + endpoints `GET/POST /api/backup` y `POST /api/backup/restore` (protegidos) + página `/admin/backup` (listar/crear/validar). Cloud intacto. **244 tests verde + 1 skipped**. Spec [`2026-10-08-desktop-03-backup-design.md`](docs/superpowers/specs/2026-10-08-desktop-03-backup-design.md), plan [`2026-10-08-desktop-03-backup.md`](docs/superpowers/plans/2026-10-08-desktop-03-backup.md). Deuda: [DT-019/020/021](docs/deuda-tecnica.md) y hallazgos [H-012/013/014](docs/hallazgos.md).
-- ⬜ **Desktop Fase 4** (shell Electron): `.exe` Windows, tray, autostart, bind LAN, split a `apps/desktop`. Sin plan escrito aún.
 - ⬜ **Desktop Fase 5** (túnel WhatsApp): Cloudflare Tunnel → webhook a la app local. Sin plan escrito aún.
+- ✅ **Desktop Fase 4** (shell Electron, `.exe` Windows): `electron/` con `main` (arranque del server standalone vía `ELECTRON_RUN_AS_NODE`, ventana, tray, autostart, single-instance) + módulos puros testeados (`port`, `config`, `lan`, `server-process`) + wizard de contraseña (`settings` en DB, `POST /api/setup` one-shot que deja sesión abierta, gate de setup en `/` y `/admin/layout`) + `/admin/conectar` con QR de la URL LAN + `electron-builder` NSIS (`pnpm electron:dist` → `dist/Sistema de Pedidos Setup 0.1.0.exe`). Prerequisitos cerrados: DT-011 (cookie `secure` desde env), DT-022 (`force-dynamic` en `/admin/backup`), DT-008/DT-035 (tracing de `pglite-tools`/`drivelist` + `vendor/` hoisted). Spec [`2026-10-11-desktop-04-electron-shell-design.md`](docs/superpowers/specs/2026-10-11-desktop-04-electron-shell-design.md), plan [`2026-10-11-desktop-04-electron-shell.md`](docs/superpowers/plans/2026-10-11-desktop-04-electron-shell.md). Deuda abierta: [DT-018](docs/deuda-tecnica.md) (`drivelist` sin bindings → sin USB en el `.exe`).
 - ✅ **Import de menú** (spec §6.4): core puro `parseMenuImport` (valida el JSON y reporta el `path` del error) + `importMenu` transaccional en `menu-repository` (modos `replace` y `append`, este último idempotente por slug) + `POST /api/admin/import` + página `/admin/import`. Menú real del primer cliente en [`docs/import/lilians-menu.json`](docs/import/lilians-menu.json) (8 categorías, 75 productos). `includes`/`extras`/`optionGroups` se **parsean pero no persisten** (dependen de los modificadores). Plan en [`docs/superpowers/plans/2026-10-04-import-menu.md`](docs/superpowers/plans/2026-10-04-import-menu.md). **183 tests verde + 1 skipped**.
 - ⬜ **Modificadores de menú** (rama `feature/modifiers-completion` pausada): core + repo + API de ingredientes hechos; UI y resto pendientes.
 
@@ -279,7 +293,7 @@ Cuando se avance, mantener este archivo sincronizado con la realidad.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
-# This is NOT the Next.js you know
+## This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
 
