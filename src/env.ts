@@ -10,7 +10,19 @@ const envSchema = z
     BACKUP_KEEP: z.coerce.number().int().min(1).default(7),
     PRINTER_HOST: z.string().default(""),
     PRINTER_PORT: z.coerce.number().int().min(1).max(65535).default(9100),
-    ADMIN_PASSWORD_HASH: z.string().regex(/^\$2[aby]\$10\$.+/, "debe ser hash bcrypt"),
+    // Opcional: en desktop el hash lo setea el wizard de primer arranque y vive
+    // en la tabla `settings`. En cloud sigue viniendo de env.
+    // Vacío cuenta como "no configurado": es lo que queda en el .env.local del
+    // local antes de pasar por el wizard.
+    ADMIN_PASSWORD_HASH: z.preprocess(
+      (value) => (value === "" ? undefined : value),
+      z.string().regex(/^\$2[aby]\$10\$.+/, "debe ser hash bcrypt").optional(),
+    ),
+    SESSION_COOKIE_SECURE: z
+      .enum(["true", "false"])
+      .default("true")
+      .transform((v) => v === "true"),
+    DESKTOP_LAN_URL: z.string().optional(),
     SESSION_SECRET: z.string().min(32, "mínimo 32 caracteres"),
     WHATSAPP_BSP_API_KEY: z.string().optional(),
     WHATSAPP_BSP_URL: z.string().url().default("https://waba-v2.360dialog.io"),
@@ -42,4 +54,8 @@ export function getEnv(): Env {
   if (cached) return cached;
   cached = parseEnv(process.env);
   return cached;
+}
+
+export function resetEnvCacheForTests(): void {
+  cached = null;
 }

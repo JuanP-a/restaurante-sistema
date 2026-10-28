@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
 import { parseEnv } from "./env";
 
 describe("parseEnv", () => {
@@ -85,5 +86,51 @@ describe("env de backup", () => {
 
   it("rechaza BACKUP_KEEP menor a 1", () => {
     expect(() => parseEnv({ ...base, BACKUP_KEEP: "0" })).toThrow();
+  });
+});
+
+describe("env de Fase 4 (desktop)", () => {
+  const base = {
+    DATABASE_URL: "postgres://x",
+    SESSION_SECRET: "a".repeat(32),
+  };
+
+  it("ADMIN_PASSWORD_HASH es opcional", () => {
+    const env = parseEnv(base);
+    expect(env.ADMIN_PASSWORD_HASH).toBeUndefined();
+  });
+
+  // Un `ADMIN_PASSWORD_HASH=` vacío en el .env.local del local (antes del
+  // wizard) no puede tumbar el arranque ni contar como hash configurado.
+  it("ADMIN_PASSWORD_HASH vacío cuenta como no configurado", () => {
+    const env = parseEnv({ ...base, ADMIN_PASSWORD_HASH: "" });
+    expect(env.ADMIN_PASSWORD_HASH).toBeUndefined();
+  });
+
+  it("SESSION_COOKIE_SECURE default true y parsea 'false'", () => {
+    expect(parseEnv(base).SESSION_COOKIE_SECURE).toBe(true);
+    expect(parseEnv({ ...base, SESSION_COOKIE_SECURE: "false" }).SESSION_COOKIE_SECURE).toBe(false);
+  });
+
+  it("DESKTOP_LAN_URL es opcional", () => {
+    expect(parseEnv(base).DESKTOP_LAN_URL).toBeUndefined();
+    expect(parseEnv({ ...base, DESKTOP_LAN_URL: "http://192.168.1.5:3210" }).DESKTOP_LAN_URL).toBe(
+      "http://192.168.1.5:3210",
+    );
+  });
+});
+
+describe("login usa SESSION_COOKIE_SECURE (no NODE_ENV)", () => {
+  it("el route no deriva secure de NODE_ENV", () => {
+    const src = readFileSync("src/app/api/admin/login/route.ts", "utf8");
+    expect(src).toContain("secure: env.SESSION_COOKIE_SECURE");
+    expect(src).not.toContain('NODE_ENV === "production"');
+  });
+});
+
+describe("páginas que leen infraestructura son force-dynamic", () => {
+  it("/admin/backup declara force-dynamic", () => {
+    const src = readFileSync("src/app/admin/backup/page.tsx", "utf8");
+    expect(src).toContain('export const dynamic = "force-dynamic"');
   });
 });

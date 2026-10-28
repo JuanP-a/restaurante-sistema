@@ -1,0 +1,24 @@
+appId: com.juanpa.restaurante
+productName: Sistema de Pedidos
+directories:
+  output: dist
+files:
+  - dist-electron/**
+  - package.json
+extraResources:
+  - from: dist-standalone
+    to: standalone
+    filter:
+      - "**/*"
+win:
+  target:
+    - nsis
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false
+# drivelist es un addon nativo que electron-builder intenta recompilar (necesita
+# MSVC + Python, que no estan en el runner). El adapter lo importa lazy y degrada
+# a [] sin el binding, asi que el .exe empaqueta igual y solo se pierde la
+# deteccion de USB en backups (DT-018).
+npmRebuild: false

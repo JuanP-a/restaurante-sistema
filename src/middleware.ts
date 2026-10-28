@@ -11,7 +11,10 @@ const PROTECTED_PREFIXES = [
   "/api/backup",
   "/api/events",
 ];
-const PUBLIC_PATHS = ["/login", "/api/admin/login", "/api/webhooks/whatsapp"];
+// El middleware no puede leer PGlite (corre antes del server Node), así que el
+// gate de setup vive en los server components; acá solo se declaran públicos
+// /setup y /api/setup, que deben ser alcanzables sin sesión.
+const PUBLIC_PATHS = ["/login", "/api/admin/login", "/api/webhooks/whatsapp", "/setup", "/api/setup"];
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

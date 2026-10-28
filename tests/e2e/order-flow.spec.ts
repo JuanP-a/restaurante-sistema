@@ -9,11 +9,9 @@ test.describe("public surface", () => {
     expect(typeof body.ts).toBe("number");
   });
 
-  test("landing muestra link a login", async ({ page }) => {
-    await page.goto("/");
-    await expect(page.getByRole("link", { name: /panel/i })).toBeVisible();
-  });
-
+  // La landing depende del gate de setup (ver setup-wizard.spec.ts): en un
+  // arranque limpio redirige a /setup, así que el link "Acceder al panel" se
+  // verifica ahí, después del wizard.
   test("login page es pública", async ({ page }) => {
     await page.goto("/login");
     await expect(page).toHaveURL(/\/login/);

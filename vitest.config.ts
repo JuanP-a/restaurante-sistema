@@ -9,6 +9,7 @@ export default defineConfig({
       "src/**/*.test.ts",
       "tests/unit/**/*.test.ts",
       "tests/integration/**/*.test.ts",
+      "electron/**/*.test.ts",
     ],
     exclude: ["node_modules", ".next", "tests/e2e/**", "**/._*"],
     setupFiles: ["./vitest.setup.ts"],

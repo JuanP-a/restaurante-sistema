@@ -4,6 +4,7 @@ import { verifyPassword } from "@/infra/auth/password";
 import { createSessionToken, SESSION_COOKIE } from "@/infra/auth/session";
 import { getDb } from "@/infra/db/client";
 import { adminSessions } from "@/infra/db/schema";
+import { getAdminPasswordHash } from "@/infra/db/settings-repository";
 import { createRateLimiter } from "@/infra/security/rate-limit";
 
 const loginLimiter = createRateLimiter({
@@ -37,7 +38,16 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
-  const ok = await verifyPassword(password, env.ADMIN_PASSWORD_HASH);
+  // En desktop el hash puede no existir todavía: lo setea el wizard de primer
+  // arranque (tabla `settings`). Sin hash no hay nada contra qué comparar.
+  const hash = (await getAdminPasswordHash()) ?? env.ADMIN_PASSWORD_HASH;
+  if (!hash) {
+    return NextResponse.json(
+      { ok: false, error: { code: "setup_required", message: "Falta configurar la contraseña" } },
+      { status: 409 },
+    );
+  }
+  const ok = await verifyPassword(password, hash);
   if (!ok) {
     return NextResponse.json(
       { ok: false, error: { code: "unauthorized", message: "Contraseña incorrecta" } },
@@ -53,7 +63,9 @@ export async function POST(req: NextRequest) {
   res.cookies.set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: env.NODE_ENV === "production",
+    // En desktop la LAN es HTTP: un cookie `Secure` no se guarda y el login
+    // falla en silencio. El shell setea false; cloud mantiene el default true.
+    secure: env.SESSION_COOKIE_SECURE,
     expires: expiresAt,
     path: "/",
   });

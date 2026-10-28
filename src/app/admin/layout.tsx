@@ -1,7 +1,13 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
+import { isSetupRequired } from "@/infra/settings/setup-state";
 
-export default function AdminLayout({ children }: { children: ReactNode }) {
+export const dynamic = "force-dynamic";
+
+export default async function AdminLayout({ children }: { children: ReactNode }) {
+  if (await isSetupRequired()) redirect("/setup");
+
   return (
     <div className="min-h-full bg-gray-50">
       <a
@@ -35,6 +41,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </Link>
           <Link href="/admin/backup" className="text-gray-700">
             Backups
+          </Link>
+          <Link href="/admin/conectar" className="text-gray-700">
+            Conectar
           </Link>
         </nav>
       </header>
