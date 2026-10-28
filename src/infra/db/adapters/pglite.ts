@@ -1,3 +1,4 @@
+import { mkdir } from "node:fs/promises";
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
@@ -10,6 +11,11 @@ export async function createPgliteDb(input: {
   migrationsFolder: string;
 }): Promise<DbHandle> {
   // "memory://" runs ephemeral (tests). Any other value persists to disk.
+  if (input.dataDir !== "memory://") {
+    // PGlite only mkdirs the leaf directory, so a fresh clone (`DB_PATH=./.data/pglite`)
+    // would fail to boot with ENOENT on the missing parent.
+    await mkdir(input.dataDir, { recursive: true });
+  }
   const client = input.dataDir === "memory://" ? new PGlite() : new PGlite(input.dataDir);
   try {
     const db = drizzle(client, { schema });
