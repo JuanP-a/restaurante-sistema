@@ -55,6 +55,15 @@ async function collectBest(vendor, pnpmDir) {
 await rm(DEST, { recursive: true, force: true });
 await cp(SRC, DEST, { recursive: true, dereference: true });
 
+// Next NO incluye .next/static ni public en el output standalone (su doc pide
+// copiarlos a mano). Sin esto el HTML llega pero los chunks 404: no hay
+// hidratación, los <form> hacen submit nativo y la app parece "rota".
+await cp(".next/static", join(DEST, ".next", "static"), {
+  recursive: true,
+  dereference: true,
+});
+await cp("public", join(DEST, "public"), { recursive: true, dereference: true });
+
 const vendor = join(DEST, "vendor");
 await rm(vendor, { recursive: true, force: true });
 await rename(join(DEST, "node_modules"), vendor);
@@ -69,5 +78,10 @@ for (const [key, { from }] of best) {
 }
 
 await rm(pnpmDir, { recursive: true, force: true });
+
+const staticDir = await listDir(join(DEST, ".next", "static"));
+if (staticDir === null || staticDir.length === 0) {
+  throw new Error("falta .next/static en el standalone: el .exe quedaria sin hidratar");
+}
 
 console.log(`standalone empaquetable listo en ${DEST} (deps hoisted en vendor/)`);
