@@ -2,6 +2,8 @@
   "name": "restaurante-sistema",
   "version": "0.1.0",
   "private": true,
+  "description": "Sistema de pedidos para restaurante de comida rápida",
+  "author": "Juan Pablo",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "next dev",
@@ -9,7 +11,7 @@
     "start": "next start",
     "electron:compile": "tsc -p electron/tsconfig.json",
     "electron:start": "pnpm electron:compile && electron .",
-    "electron:dist": "pnpm build && pnpm electron:compile && electron-builder",
+    "electron:dist": "pnpm build && node scripts/pack-standalone.mjs && pnpm electron:compile && electron-builder",
     "test": "cross-env VITEST_INIT_DB=1 vitest run --passWithNoTests --no-file-parallelism",
     "test:unit": "vitest run --passWithNoTests --no-file-parallelism --exclude 'tests/integration/**'",
     "test:integration": "cross-env VITEST_INIT_DB=1 vitest run --passWithNoTests --no-file-parallelism tests/integration",

@@ -33,6 +33,7 @@
 # desktop packaging (Fase 4)
 /dist-electron
 /dist
+/dist-standalone
 
 # misc
 .DS_Store

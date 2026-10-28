@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, utilityProcess } from "electron";
+import { app, BrowserWindow, dialog } from "electron";
 import { spawn } from "node:child_process";
 import { join } from "node:path";
 import { loadConfig, resolveDefaultBackupDir, saveConfig } from "./config";
@@ -22,20 +22,21 @@ function inheritedEnv(): Record<string, string> {
 }
 
 function spawnServer(env: Record<string, string>): ChildLike {
-  // utilityProcess.fork usa el Node embebido de Electron: no hay que empaquetar
-  // un runtime aparte. Fallback: child_process con ELECTRON_RUN_AS_NODE=1 si
-  // PGlite diera problemas bajo utilityProcess.
+  // El standalone corre con el Node embebido de Electron (ELECTRON_RUN_AS_NODE),
+  // no con utilityProcess: bajo utilityProcess PGlite (WASM) moría al arrancar
+  // sin escribir nada en stdout. ELECTRON_RUN_AS_NODE es Node puro, que es el
+  // entorno donde el server ya está probado.
   const entry = join(process.resourcesPath, "standalone", "server.js");
-  try {
-    const child = utilityProcess.fork(entry, [], { env: { ...inheritedEnv(), ...env } });
-    return { kill: () => child.kill(), on: (_event, cb) => child.once("exit", cb) };
-  } catch {
-    const child = spawn(process.execPath, [entry], {
-      env: { ...inheritedEnv(), ...env, ELECTRON_RUN_AS_NODE: "1" },
-      stdio: "ignore",
-    });
-    return { kill: () => child.kill(), on: (_event, cb) => child.once("exit", cb) };
-  }
+  const log = (prefix: string) => (chunk: Buffer) =>
+    console.log(`[server:${prefix}]`, chunk.toString().trim());
+  const child = spawn(process.execPath, [entry], {
+    env: { ...inheritedEnv(), ...env, ELECTRON_RUN_AS_NODE: "1" },
+    stdio: ["ignore", "pipe", "pipe"],
+    windowsHide: true,
+  });
+  child.stdout?.on("data", log("out"));
+  child.stderr?.on("data", log("err"));
+  return { kill: () => child.kill(), on: (_event, cb) => child.once("exit", cb) };
 }
 
 async function boot(): Promise<void> {
@@ -56,6 +57,9 @@ async function boot(): Promise<void> {
     // La LAN del local es HTTP: un cookie Secure no se guardaria.
     SESSION_COOKIE_SECURE: "false",
     BACKUP_DIR: resolveDefaultBackupDir(app.getPath("documents")),
+    // Las deps del standalone viajan como `vendor/` (electron-builder descarta
+    // cualquier node_modules en extraResources).
+    NODE_PATH: join(process.resourcesPath, "standalone", "vendor"),
     ...(lan ? { DESKTOP_LAN_URL: lan } : {}),
   };
 
