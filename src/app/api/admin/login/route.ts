@@ -61,7 +61,9 @@ export async function POST(req: NextRequest) {
   res.cookies.set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: env.NODE_ENV === "production",
+    // En desktop la LAN es HTTP: un cookie `Secure` no se guarda y el login
+    // falla en silencio. El shell setea false; cloud mantiene el default true.
+    secure: env.SESSION_COOKIE_SECURE,
     expires: expiresAt,
     path: "/",
   });
