@@ -37,6 +37,14 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
+  // En desktop el hash puede no existir todavía: lo setea el wizard de primer
+  // arranque (tabla `settings`). Sin hash no hay nada contra qué comparar.
+  if (!env.ADMIN_PASSWORD_HASH) {
+    return NextResponse.json(
+      { ok: false, error: { code: "setup_required", message: "Falta configurar la contraseña" } },
+      { status: 409 },
+    );
+  }
   const ok = await verifyPassword(password, env.ADMIN_PASSWORD_HASH);
   if (!ok) {
     return NextResponse.json(
