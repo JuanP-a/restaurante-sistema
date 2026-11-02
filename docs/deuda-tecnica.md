@@ -18,6 +18,7 @@
 | ID | Área | Deuda | Prioridad | Esfuerzo | Estado | Origen |
 |----|------|-------|-----------|----------|--------|--------|
 | DT-022 | Desktop | `/admin/backup` sin `force-dynamic`: se prerenderiza como cloud y no aparece en el `.exe` | Alta | S | Resuelta (2026-10-28, #46) | [H-015](hallazgos.md) |
+| DT-047 | Desktop | El `.exe` no tiene superficie de configuracion: `PRINTER_HOST`, `BUSINESS_*` y `WHATSAPP_*` solo entran por env y el `.exe` no lee `.env` | Alta | M | Abierta | Runbook Fase 4 |
 | DT-023 | Frontend | Dark-mode del SO vuelve ilegible la UI y los tickets (`bg-white` + `--foreground` claro) | Alta | S | Abierta | [H-016](hallazgos.md) |
 | DT-024 | WhatsApp | El bot no hidrata el producto: placeholder `name:"x"`/`basePrice:"0"` | Alta | M | Abierta | [H-017](hallazgos.md) |
 | DT-025 | Desktop | `runBackup` reporta éxito sin escribir en ningún destino (falso "Backup creado") | Alta | S | Abierta | [H-018](hallazgos.md) |
@@ -77,7 +78,14 @@
 - **Fix propuesto:** añadir `export const dynamic = "force-dynamic";` (o `await connection()`), igual que `orders/page.tsx:12` y `menu/page.tsx:9`.
 - **Criterio de cierre:** en un build standalone con `backupSource` presente, `/admin/backup` renderiza la UI.
 
-### DT-023 — Dark-mode rompe contraste de UI y tickets
+### DT-047 - El `.exe` no tiene superficie de configuración
+
+- **Qué:** el server hijo recibe de `electron/main.ts` solo `PORT`, `DB_*`, `SESSION_*`, `BACKUP_DIR`, `DESKTOP_LAN_URL` y `NODE_PATH`. `PRINTER_HOST`/`PRINTER_PORT`, `BUSINESS_*`/`NEXT_PUBLIC_BUSINESS_*` y `WHATSAPP_*` **no** se pasan, y el `.exe` no lee `.env.local`.
+- **Por qué importa:** en la app instalada la impresión térmica server-side es inalcanzable (el endpoint responde `printed: "browser"` y hay que imprimir desde el diálogo del navegador, sin ESC/POS silencioso), los tickets salen con el nombre por defecto y la Fase 5 (túnel WhatsApp) no tendría credenciales. El wizard de Fase 4 solo cubre la contraseña.
+- **Fix propuesto:** extender `config.json` con `printerHost`/`printerPort`/`businessName` (+ `whatsapp*` en Fase 5) y una pantalla `/admin/ajustes` que los edite; `main.ts` los inyecta al hijo. Alternativa mínima: leer un `config.json` con esos campos y exponer solo edición de impresora.
+- **Criterio de cierre:** en el `.exe` se configura la IP de la térmica desde la UI y `print-kitchen` responde `printed: "escpos"`.
+
+### DT-023 - Dark-mode rompe contraste de UI y tickets
 
 - **Qué:** `globals.css:15-20` pisa `--foreground` a `#ededed` en modo oscuro; `Card`/`CardList` y varias páginas usan `bg-white` sin color de texto explícito; las páginas de impresión heredan el mismo color (ver [H-016](hallazgos.md)).
 - **Por qué importa:** con el SO en modo oscuro el texto de tarjetas/encabezados queda casi blanco sobre blanco (invisible) y el ticket puede salir ilegible.

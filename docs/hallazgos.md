@@ -16,6 +16,8 @@
 
 | ID | Fecha | Hallazgo | Impacto | Documentado en |
 |----|-------|----------|---------|----------------|
+| H-025 | 2026-10-28 | `pg_dump` deja una transacción read-only abierta en el cliente PGlite compartido: todo `INSERT` posterior falla | Alto | [H-025](#h-025--pg_dump-deja-la-sesión-pglite-en-read-only) |
+| H-024 | 2026-10-28 | El standalone de Next no incluye `.next/static`/`public`: el `.exe` sirve HTML sin hidratar y el form hace GET filtrando la contraseña | Alto | [H-024](#h-024--standalone-sin-nextstatic-el-exe-no-hidrata) |
 | H-023 | 2026-10-28 | electron-builder no copia junctions de pnpm ni `node_modules` en `extraResources`: el standalone necesita un `vendor/` hoisted | Alto | [DT-035](deuda-tecnica.md) |
 | H-022 | 2026-10-28 | `utilityProcess.fork` + PGlite (WASM) muere sin escribir en stdout; `ELECTRON_RUN_AS_NODE` sí funciona | Medio | [DT-018](deuda-tecnica.md) |
 | H-021 | 2026-10-11 | `validateNewOrder` no valida la *forma* de `items`/`serviceType` → 500 en vez de 400 | Medio | [DT-028](deuda-tecnica.md) |
@@ -43,6 +45,20 @@
 ---
 
 ## Detalle
+
+### H-025 - `pg_dump` deja la sesión PGlite en read-only
+
+- **Qué esperábamos:** crear un backup no afectaría la operación normal.
+- **Qué pasó:** `pg_dump` (pglite-tools) comparte la sesión del cliente PGlite vivo y **deja abierta una transacción read-only**. El siguiente `INSERT` falla con `cannot execute INSERT in a read-only transaction`: el login devolvía **500** y no se podían crear pedidos hasta reiniciar la app. `SET default_transaction_read_only = off` no alcanza (la transacción abierta sigue read-only); hay que cerrarla con `COMMIT`. `ROLLBACK` también la cierra pero **descarta** lo escrito antes.
+- **Por qué importa:** rompe la app entera después del primer backup, en silencio (solo se ve un 500 genérico).
+- **Fix:** `pglite-source.ts` cierra con `COMMIT` + restaura el flag en un `finally`; test de regresión que hace `dump` y luego `INSERT`.
+
+### H-024 - Standalone sin `.next/static`: el `.exe` no hidrata
+
+- **Qué esperábamos:** el `.exe` serviría la app igual que `pnpm dev`.
+- **Qué pasó:** el HTML llegaba pero todos los `/_next/static/chunks/*` daban **404** (Next no copia `.next/static` ni `public` al output standalone; su doc pide hacerlo a mano). Sin JS no hay hidratación: el `<form>` del wizard hacía **submit nativo** y terminaba en `/setup?password=clave-desktop`, filtrando la contraseña en la URL. El smoke test anterior solo miraba `/api/health`, así que no lo detectó.
+- **Por qué importa:** la app "parece rota" sin errores de servidor; y el fallo del form filtra credenciales al historial.
+- **Fix:** `pack-standalone.mjs` copia `.next/static` y `public` y **falla el empaquetado** si quedan vacíos. Verificado con CDP: wizard → `/admin/orders`, sin 404.
 
 ### H-023 - electron-builder no copia junctions de pnpm ni `node_modules` en `extraResources`
 
