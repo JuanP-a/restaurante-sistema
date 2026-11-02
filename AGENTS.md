@@ -102,6 +102,8 @@ El `.exe` no usa `.env.local`: al primer arranque muestra `/setup` para definir 
 
 ### Mantenimiento: shadow files de macOS
 
+> **Solo aplica si el repo vive en el volumen externo de macOS** (`/Volumes/M2 Mac/`). En Windows (`C:\Users\...\source\repos\restaurante-sistema`) no hay `._*`; saltar esta sección y la siguiente.
+
 El proyecto vive en un volumen externo (`/Volumes/M2 Mac/`) que no soporta atributos extendidos de APFS de forma nativa. macOS compensa creando archivos `._*` (AppleDouble) junto a cada archivo real — ensucian el IDE y pueden romper herramientas que asumen UTF-8 limpio (vitest fallaba con `PARSE_ERROR` hasta que los excluimos del glob de tests).
 
 **Dónde romper y por qué:**
@@ -120,6 +122,8 @@ find .next -name '._*' -delete   # específicamente antes de pnpm build
 Si los IDE siguen mostrando `._*` después de esto, reiniciarlo suele forzar el re-escaneo del filesystem.
 
 ### Mantenimiento: file mode 700 en volumen externo (rebase / merge)
+
+> **Solo aplica en el volumen externo de macOS.** En Windows no hay mismatch de modos; rebase/merge/checkout funcionan normal.
 
 El mismo volumen externo que rompe con `._*` también escribe **cada archivo con mode `700` (rwx------)**, mientras que git index tiene `644`. Resultado: `chmod 644` es no-op en este filesystem (APFS protection), `git status` mienta diciendo "clean" cuando hay mode mismatch, y `git rebase`/`merge`/`checkout` que toquen muchos archivos fallan con errores crípticos:
 
@@ -205,7 +209,7 @@ pnpm why <paquete>                   # de quién cuelga la dep vulnerable
 - `pnpm drizzle:generate` — generar migración desde schema
 - `pnpm drizzle:migrate` — aplicar migraciones
 - `pnpm db:seed` — sembrar datos de ejemplo
-- `pnpm test:e2e` — Playwright (wizard de setup + superficie pública)
+- `pnpm test:e2e` — Playwright (wizard de setup + superficie pública + admin a 375px). Requiere `pnpm exec playwright install chromium` la primera vez
 - `pnpm electron:compile` — compila `electron/` a `dist-electron/`
 - `pnpm electron:start` — shell Electron en dev (requiere `pnpm build` previo)
 - `pnpm electron:dist` — build + `pack-standalone` + instalador NSIS en `dist/`
@@ -263,6 +267,10 @@ Producto con **dos formas de distribuir, un solo código**: versión web/cloud (
 - ✅ **Desktop Fase 1** (puerto DB + PGlite embebido): puerto `Db` con adapters `postgres`/`pglite` (`DB_DRIVER`), `initDb`/`getDb` + boot en `src/instrumentation.ts`, migración en boot, suite de integración sobre **PGlite in-memory sin Docker**, secuencia desacoplada del driver, y build que empaqueta `drizzle/` + `@electric-sql/pglite` (`output: "standalone"`). **PR [#19](https://github.com/JuanP-a/restaurante-sistema/pull/19) squash-merged.** Ver ADR [`0002`](docs/decisions/0002-puerto-db-pglite.md). **169 tests verde + 1 skipped** (contrato Postgres opt-in). Retro-compatible: default `DB_DRIVER=postgres`, `render.yaml` intacto.
 - ✅ **Desktop Fase 2** (impresión ESC/POS server-side): renderer puro en `src/core/printing/` (CP850 + comandos ESC/POS + tickets 48 cols) + puerto `PrintTransport` con adapters `tcp`/`fake` + `print-service` (reintentos 3× con backoff + eventos `printed_kitchen`/`printed_bill`/`print_failed`) + endpoints `print-kitchen`/`print-bill` con auto-detect por `PRINTER_HOST` (server-side vs fallback al navegador) + anti-doble-impresión en `/print/...`. Migración `event_kind += print_failed`. **210 tests verde + 1 skipped**. Spec [`2026-10-07-desktop-02-print-escpos-design.md`](docs/superpowers/specs/2026-10-07-desktop-02-print-escpos-design.md), plan [`2026-10-03-desktop-02-print-escpos.md`](docs/superpowers/plans/2026-10-03-desktop-02-print-escpos.md).
 - ✅ **Desktop Fase 3** (backups, manual): core puro (`backupFileName`, `selectForDeletion`) + puerto `BackupSource`/`BackupDestination` con adapters PGlite (`pgDump`), carpeta fs (valida nombre → sin path traversal) y USB vía `drivelist` (import lazy, degrada a `[]`) + `runBackup` (escritura multi-destino con éxito parcial + rotación) + `verifyBackup` (restaura el dump en PGlite temporal y cuenta filas) + `getBackupSource` en el puerto DB (null en cloud → 409) + endpoints `GET/POST /api/backup` y `POST /api/backup/restore` (protegidos) + página `/admin/backup` (listar/crear/validar). Cloud intacto. **244 tests verde + 1 skipped**. Spec [`2026-10-08-desktop-03-backup-design.md`](docs/superpowers/specs/2026-10-08-desktop-03-backup-design.md), plan [`2026-10-08-desktop-03-backup.md`](docs/superpowers/plans/2026-10-08-desktop-03-backup.md). Deuda: [DT-019/020/021](docs/deuda-tecnica.md) y hallazgos [H-012/013/014](docs/hallazgos.md).
+- ✅ **Portabilidad en Windows** (PR [#43](https://github.com/JuanP-a/restaurante-sistema/pull/43)): dir de datos de PGlite, `cross-env` en scripts y timeouts. El desarrollo del proyecto pasó a Windows; las notas de macOS de arriba son históricas.
+- ✅ **Fixes del runbook de Fase 4** (PR [#47](https://github.com/JuanP-a/restaurante-sistema/pull/47)): el `.exe` no hidrataba (`.next/static` y `public` no iban en el standalone) y `pg_dump` dejaba la transacción read-only en la DB tras un backup. Runbook en `docs/runbooks/2026-10-28-desktop-04-verificacion-windows.md`; hallazgos H-024/H-025 y DT-047.
+- ✅ **UI móvil del admin** (PR [#50](https://github.com/JuanP-a/restaurante-sistema/pull/50)): nuevo pedido a una columna bajo `lg` con barra fija de carrito, nav de una fila con scroll horizontal, 44px de área táctil con `pointer:coarse` en `Button`/`Input`, `text-base` en inputs. Spec e2e `tests/e2e/ui-movil.spec.ts`. Pendiente de la auditoría de UI: steppers de cantidad, teléfono opcional en local, contraste del verde, tema oscuro (DT-023), fuente Arial (`globals.css` pisa a Geist).
+- ✅ **Bumps de Dependabot** (#48, #49): aplicados por `@dependabot recreate`/`rebase`, no con `gh pr update-branch`. Etiqueta `dependencies` creada en el repo (Dependabot no procesaba comandos sin ella).
 - ⬜ **Desktop Fase 5** (túnel WhatsApp): Cloudflare Tunnel → webhook a la app local. Sin plan escrito aún.
 - ✅ **Desktop Fase 4** (shell Electron, `.exe` Windows): `electron/` con `main` (arranque del server standalone vía `ELECTRON_RUN_AS_NODE`, ventana, tray, autostart, single-instance) + módulos puros testeados (`port`, `config`, `lan`, `server-process`) + wizard de contraseña (`settings` en DB, `POST /api/setup` one-shot que deja sesión abierta, gate de setup en `/` y `/admin/layout`) + `/admin/conectar` con QR de la URL LAN + `electron-builder` NSIS (`pnpm electron:dist` → `dist/Sistema de Pedidos Setup 0.1.0.exe`). Prerequisitos cerrados: DT-011 (cookie `secure` desde env), DT-022 (`force-dynamic` en `/admin/backup`), DT-008/DT-035 (tracing de `pglite-tools`/`drivelist` + `vendor/` hoisted). Spec [`2026-10-11-desktop-04-electron-shell-design.md`](docs/superpowers/specs/2026-10-11-desktop-04-electron-shell-design.md), plan [`2026-10-11-desktop-04-electron-shell.md`](docs/superpowers/plans/2026-10-11-desktop-04-electron-shell.md). Deuda abierta: [DT-018](docs/deuda-tecnica.md) (`drivelist` sin bindings → sin USB en el `.exe`).
 - ✅ **Import de menú** (spec §6.4): core puro `parseMenuImport` (valida el JSON y reporta el `path` del error) + `importMenu` transaccional en `menu-repository` (modos `replace` y `append`, este último idempotente por slug) + `POST /api/admin/import` + página `/admin/import`. Menú real del primer cliente en [`docs/import/lilians-menu.json`](docs/import/lilians-menu.json) (8 categorías, 75 productos). `includes`/`extras`/`optionGroups` se **parsean pero no persisten** (dependen de los modificadores). Plan en [`docs/superpowers/plans/2026-10-04-import-menu.md`](docs/superpowers/plans/2026-10-04-import-menu.md). **183 tests verde + 1 skipped**.
@@ -277,7 +285,9 @@ Producto con **dos formas de distribuir, un solo código**: versión web/cloud (
 - **`pnpm test:integration`** corre solo integration; por default contra PGlite in-memory. Para parity con Postgres real: `DB_DRIVER=postgres DATABASE_URL=... pnpm test:integration` (requiere `docker compose up -d`).
 - `vitest.setup.ts` inicializa la DB solo cuando el script setea `VITEST_INIT_DB=1` (lo hacen `test` y `test:integration`, no `test:unit`).
 - Integration tests comparten DB; vitest corre con `--no-file-parallelism` para evitar carreras en unique-constraint columns.
-- CI (`verify`) solo corre unit por ahora; integration en CI queda pendiente (service container + provisioning de env vars).
+- **E2E** (`playwright.config.ts`): `workers: 1`. Los specs comparten un server con PGlite en memoria y el wizard (`setup-wizard.spec.ts`) asume la DB virgen; `fullyParallel: false` solo serializa dentro de un archivo, así que sin `workers: 1` los archivos corrían en paralelo y se pisaban (un spec que hace `/api/setup` antes que el wizard le deja la DB configurada). Los specs que necesitan sesión entran por API (`/api/setup` o `/api/admin/login`), no por el formulario: el login por UI se quedaba en `/login` en la primera carga en frío del dev server.
+- Cifras actuales (2026-11-02): unit 153 verdes + 1 skipped; integration 132 verdes; e2e 10 verdes.
+- CI (`verify`) corre `pnpm build` + unit + `pnpm audit --audit-level=high`. **Integration y e2e no corren en CI** (pendiente: service container/provisioning de env vars para integration; navegador de Playwright para e2e). Correrlos en local antes de abrir PR.
 
 ### Infraestructura (fuera del spec, parte del repo)
 
