@@ -5,6 +5,17 @@ import { isSetupRequired } from "@/infra/settings/setup-state";
 
 export const dynamic = "force-dynamic";
 
+const NAV_LINKS = [
+  { href: "/admin/orders", label: "Pedidos" },
+  { href: "/admin/orders/new", label: "Nuevo" },
+  { href: "/admin/menu", label: "Menú" },
+  { href: "/admin/menu/categories", label: "Categorías" },
+  { href: "/admin/import", label: "Importar" },
+  { href: "/admin/delivery-zones", label: "Zonas" },
+  { href: "/admin/backup", label: "Backups" },
+  { href: "/admin/conectar", label: "Conectar" },
+] as const;
+
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   if (await isSetupRequired()) redirect("/setup");
 
@@ -17,34 +28,21 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         Saltar al contenido
       </a>
       <header className="border-b bg-white">
+        {/* Una sola fila con scroll horizontal: en celular 8 enlaces no caben, y
+            Pedidos/Nuevo (los de uso constante) van primero, siempre a la vista. */}
         <nav
           aria-label="Navegación principal"
-          className="mx-auto flex max-w-5xl gap-4 px-6 py-3 text-sm"
+          className="mx-auto flex max-w-5xl overflow-x-auto px-2 text-sm sm:px-6"
         >
-          <Link href="/admin/orders" className="font-semibold">
-            Pedidos
-          </Link>
-          <Link href="/admin/orders/new" className="text-gray-700">
-            Nuevo
-          </Link>
-          <Link href="/admin/menu" className="text-gray-700">
-            Menú
-          </Link>
-          <Link href="/admin/menu/categories" className="text-gray-700">
-            Categorías
-          </Link>
-          <Link href="/admin/import" className="text-gray-700">
-            Importar
-          </Link>
-          <Link href="/admin/delivery-zones" className="text-gray-700">
-            Zonas
-          </Link>
-          <Link href="/admin/backup" className="text-gray-700">
-            Backups
-          </Link>
-          <Link href="/admin/conectar" className="text-gray-700">
-            Conectar
-          </Link>
+          {NAV_LINKS.map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href}
+              className="flex min-h-11 shrink-0 items-center px-3 text-gray-700 first:font-semibold"
+            >
+              {label}
+            </Link>
+          ))}
         </nav>
       </header>
       <main id="main" tabIndex={-1}>

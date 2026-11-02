@@ -1,7 +1,9 @@
 "use client";
 import type { InputHTMLAttributes, TextareaHTMLAttributes } from "react";
 
-const baseInputClass = "rounded border px-3 py-2";
+// text-base (16px): por debajo, iOS Safari hace zoom al enfocar el campo.
+const baseInputClass =
+  "rounded border px-3 py-2 text-base [@media(pointer:coarse)]:min-h-11";
 
 export type InputProps = InputHTMLAttributes<HTMLInputElement> & {
   label?: string;

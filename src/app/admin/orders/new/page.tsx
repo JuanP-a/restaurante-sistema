@@ -163,8 +163,8 @@ export default function NewOrderPage() {
   }
 
   return (
-    <div className="grid h-screen grid-cols-2 gap-4 p-4">
-      <div className="overflow-y-auto">
+    <div className="grid gap-4 p-4 pb-24 lg:h-[calc(100dvh-2.8125rem)] lg:grid-cols-2 lg:pb-4">
+      <div className="lg:overflow-y-auto">
         <Input
           name="search"
           placeholder="Buscar producto"
@@ -176,8 +176,10 @@ export default function NewOrderPage() {
           {categories.map((c) => (
             <button
               key={c.id}
+              type="button"
+              aria-pressed={activeCategory === c.id}
               onClick={() => setActiveCategory(c.id)}
-              className={`rounded px-3 py-1 text-sm ${
+              className={`min-h-11 shrink-0 rounded px-4 text-sm ${
                 activeCategory === c.id ? "bg-black text-white" : "bg-gray-200"
               }`}
             >
@@ -189,8 +191,9 @@ export default function NewOrderPage() {
           {filteredProducts.map((p) => (
             <button
               key={p.id}
+              type="button"
               onClick={() => addToCart(p)}
-              className="rounded border bg-white p-3 text-left hover:bg-gray-50"
+              className="min-h-11 rounded border bg-white p-3 text-left hover:bg-gray-50"
             >
               <div className="font-semibold">{p.name}</div>
               <div className="text-sm text-gray-600">${p.basePrice}</div>
@@ -203,7 +206,8 @@ export default function NewOrderPage() {
           e.preventDefault();
           void submit();
         }}
-        className="flex flex-col overflow-y-auto rounded border bg-white p-4"
+        id="carrito"
+        className="flex scroll-mt-2 flex-col rounded border bg-white p-4 lg:overflow-y-auto"
       >
         <h2 className="mb-2 text-lg font-bold">Carrito</h2>
         <ul className="mb-4 flex-1 divide-y">
@@ -236,6 +240,8 @@ export default function NewOrderPage() {
           />
           <Input
             name="phone"
+            type="tel"
+            inputMode="tel"
             label="Teléfono"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
@@ -245,7 +251,7 @@ export default function NewOrderPage() {
           <fieldset>
             <legend className="sr-only">Tipo de servicio</legend>
             <div className="flex gap-2">
-              <label className="flex flex-1 items-center gap-2">
+              <label className="flex min-h-11 flex-1 items-center gap-2">
                 <input
                   type="radio"
                   name="serviceType"
@@ -255,7 +261,7 @@ export default function NewOrderPage() {
                 />
                 Local
               </label>
-              <label className="flex flex-1 items-center gap-2">
+              <label className="flex min-h-11 flex-1 items-center gap-2">
                 <input
                   type="radio"
                   name="serviceType"
@@ -283,7 +289,7 @@ export default function NewOrderPage() {
                 <select
                   value={coloniaId}
                   onChange={(e) => setColoniaId(e.target.value)}
-                  className="w-full rounded border px-3 py-2"
+                  className="min-h-11 w-full rounded border px-3 py-2 text-base"
                 >
                   <option value="">— Seleccionar colonia —</option>
                   {colonias.map((c) => (
@@ -297,6 +303,7 @@ export default function NewOrderPage() {
                 name="overrideCost"
                 label="Costo envío manual (10-30)"
                 type="number"
+                inputMode="decimal"
                 min={10}
                 max={30}
                 step={0.5}
@@ -335,6 +342,20 @@ export default function NewOrderPage() {
           </Button>
         </div>
       </form>
+      {cart.length > 0 && (
+        // Con una columna el carrito queda debajo del menú: la barra mantiene
+        // total y acceso al alcance del pulgar mientras se agregan productos.
+        <a
+          href="#carrito"
+          className="fixed inset-x-0 bottom-0 z-10 flex min-h-14 items-center justify-between bg-black px-4 pb-[env(safe-area-inset-bottom)] text-white lg:hidden"
+        >
+          <span>
+            {cart.reduce((n, i) => n + i.quantity, 0)} productos · $
+            {total.toFixed(2)}
+          </span>
+          <span className="font-semibold">Ver carrito ↓</span>
+        </a>
+      )}
     </div>
   );
 }
