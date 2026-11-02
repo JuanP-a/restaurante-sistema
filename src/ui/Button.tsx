@@ -1,6 +1,10 @@
 "use client";
 import type { ButtonHTMLAttributes } from "react";
 
+// Con puntero táctil todos los botones llegan a 44px; con mouse conservan la
+// densidad de escritorio. Se mide por tipo de puntero, no por ancho de pantalla.
+const touchTarget = "[@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11";
+
 const variantClasses = {
   primary: "rounded bg-black px-4 py-2 text-white disabled:opacity-50",
   secondary: "rounded bg-gray-800 px-3 py-1 text-white disabled:opacity-50",
@@ -25,7 +29,7 @@ export function Button({
   return (
     <button
       type={type}
-      className={`${variantClasses[variant]} ${className}`.trim()}
+      className={`${touchTarget} ${variantClasses[variant]} ${className}`.trim()}
       {...rest}
     />
   );

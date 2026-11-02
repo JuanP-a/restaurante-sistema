@@ -4,6 +4,10 @@ export default defineConfig({
   testDir: "./tests/e2e",
   testIgnore: ["**/._*"],
   fullyParallel: false,
+  // Un solo worker: los specs comparten un server con DB en memoria y dependen
+  // del orden (el wizard asume la DB virgen). fullyParallel:false solo evita el
+  // paralelismo dentro de un archivo; archivos distintos corrían en paralelo.
+  workers: 1,
   retries: 0,
   timeout: 60_000,
   use: {
