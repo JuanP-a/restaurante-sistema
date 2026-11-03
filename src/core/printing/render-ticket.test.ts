@@ -1,10 +1,12 @@
 import { describe, expect, test } from "vitest";
-import { GS } from "./escpos-bytes";
+import { encodeCp850 } from "./cp850";
+import { cut, GS, init, selectCp850 } from "./escpos-bytes";
 import {
   formatDateTime,
   formatMoney,
   renderBillTicket,
   renderKitchenTicket,
+  renderTestTicket,
   truncate,
   twoColumns,
 } from "./render-ticket";
@@ -80,5 +82,25 @@ describe("renderBillTicket", () => {
     expect(includesSequence(bytes, [0x24, 0x32, 0x33, 0x30, 0x2e, 0x30, 0x30])).toBe(true); // "$230.00"
     expect(includesSequence(bytes, [0x54, 0x4f, 0x54, 0x41, 0x4c])).toBe(true); // "TOTAL"
     expect(bytes.includes(0xa5)).toBe(true); // 'Ñ' en CP850
+  });
+});
+
+describe("renderTestTicket", () => {
+  const now = new Date(2026, 10, 3, 14, 5);
+  const bytes = renderTestTicket(now);
+
+  test("abre con init + CP850 y cierra con corte", () => {
+    expect([...bytes.slice(0, 5)]).toEqual([...init(), ...selectCp850()]);
+    expect([...bytes.slice(-3)]).toEqual(cut());
+  });
+
+  test("imprime título y fecha", () => {
+    expect(includesSequence(bytes, encodeCp850("PRUEBA DE IMPRESIÓN"))).toBe(true);
+    expect(includesSequence(bytes, encodeCp850(formatDateTime(now)))).toBe(true);
+  });
+
+  // Si los acentos salen como basura, el operador sabe que debe elegir CP850 en la impresora.
+  test("incluye una línea de acentos para comprobar el codepage", () => {
+    expect(includesSequence(bytes, encodeCp850("áéíóú ñ ¿¡"))).toBe(true);
   });
 });
