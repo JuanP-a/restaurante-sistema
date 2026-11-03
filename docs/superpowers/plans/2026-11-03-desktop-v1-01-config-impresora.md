@@ -15,7 +15,7 @@
 - **TDD:** test primero, verlo fallar por la razón correcta, mínimo código para pasar, refactor. Cobertura ≥80 %.
 - **Sin mocks:** fakes in-memory, PGlite real, y un servidor TCP local (`node:net`) en lugar de mockear el transporte.
 - Tests de integración: `// @vitest-environment node` y `getDb()`.
-- Un commit por tarea (conventional commits, cuerpo con el "por qué" si no es obvio). Verificar antes de commitear: `pnpm typecheck && pnpm lint && pnpm test:unit` (+ `pnpm test:integration` donde se indique).
+- Un commit por tarea (conventional commits, cuerpo con el "por qué" si no es obvio). Verificar antes de commitear: `pnpm typecheck && pnpm test:unit` (+ `pnpm test:integration` donde se indique).
 - `pnpm`, nunca npm/npx. Nombres de dominio en español, tecnología en inglés.
 - Fuera de alcance: lo listado en la spec (BUSINESS_*, WHATSAPP_*, USB, 2 impresoras, auto-print).
 
@@ -121,7 +121,7 @@
 
 - [ ] **Step 1:** construir la página siguiendo `/admin/conectar` y `/admin/backup`. En cloud (`DB_DRIVER !== "pglite"`) mostrar "Disponible solo en la versión de escritorio", igual que `conectar`.
 - [ ] **Step 2:** a11y: `label` por campo, mensajes de resultado con `role="status"`, botones ≥44 px (los primitivos ya lo cumplen).
-- [ ] **Step 3:** `pnpm typecheck && pnpm lint && pnpm build`; commit `feat(admin): pagina de ajustes con la impresora`.
+- [ ] **Step 3:** `pnpm typecheck && pnpm build`; commit `feat(admin): pagina de ajustes con la impresora`.
 - Sin test de componente: la lógica está en el core y la API; la UI se verifica en la Task 7. (Un e2e con Playwright queda fuera por YAGNI; el flujo se recorre en el `.exe`.)
 
 ---
@@ -157,7 +157,7 @@
 ## Verificación final (antes del PR)
 
 ```bash
-pnpm typecheck && pnpm lint
+pnpm typecheck  # no existe `pnpm lint` (H-009/DT-001)
 pnpm test:unit
 pnpm test:integration
 pnpm build && pnpm audit --audit-level=high

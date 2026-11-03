@@ -46,3 +46,7 @@ Todo lo demás pasa a **v2**. No se borra: sigue registrado donde ya estaba.
 
 - **Incluir DT-023 en la v1:** rechazada por el usuario. Se considera un asunto del sistema operativo del cliente y no una funcionalidad. El trade-off de arriba deja constancia del riesgo.
 - **Resolver todo DT-047 de una vez** (impresora, negocio y WhatsApp): rechazada. WhatsApp depende de la Fase 5, que no tiene plan, y no bloquea imprimir ni respaldar.
+
+## Actualización (2026-11-03): DT-023 se mantiene
+
+La verificación de la config de impresora ([runbook](../runbooks/2026-11-03-desktop-v1-impresora.md)) mostró que con Windows en modo oscuro `/admin/ajustes` sale casi ilegible (título, etiquetas, campos y el botón "Imprimir prueba" en gris casi blanco sobre gris claro). El usuario decidió **mantener el comportamiento actual: la app sigue el tema del sistema operativo**. DT-023 queda abierta. El riesgo es el descrito arriba y ahora está comprobado: si el equipo del cliente usa modo oscuro, el operador no podrá leer el formulario de la impresora. Arreglo mínimo si hace falta: `color-scheme: light` en `globals.css`.

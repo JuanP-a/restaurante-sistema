@@ -16,6 +16,9 @@
 
 | ID | Fecha | Hallazgo | Impacto | Documentado en |
 |----|-------|----------|---------|----------------|
+| H-028 | 2026-11-03 | El cliente TCP de impresión resuelve al terminar de enviar, antes de que el servidor lea: un test que lee de inmediato ve un buffer vacío | Bajo | `tests/integration/printer/capture-server.ts` |
+| H-027 | 2026-11-03 | Verificar el `.exe` por DOM/CDP no detecta texto ilegible: la página nueva pasó 21/21 y en la captura era casi invisible (modo oscuro) | Medio | [Runbook impresora](../runbooks/2026-11-03-desktop-v1-impresora.md), [DT-023](deuda-tecnica.md) |
+| H-026 | 2026-11-03 | El middleware protege por **lista de prefijos**: una ruta `/api/...` nueva queda abierta si se olvida añadirla | Alto | [DT-049](deuda-tecnica.md) |
 | H-025 | 2026-10-28 | `pg_dump` deja una transacción read-only abierta en el cliente PGlite compartido: todo `INSERT` posterior falla | Alto | [H-025](#h-025--pg_dump-deja-la-sesión-pglite-en-read-only) |
 | H-024 | 2026-10-28 | El standalone de Next no incluye `.next/static`/`public`: el `.exe` sirve HTML sin hidratar y el form hace GET filtrando la contraseña | Alto | [H-024](#h-024--standalone-sin-nextstatic-el-exe-no-hidrata) |
 | H-023 | 2026-10-28 | electron-builder no copia junctions de pnpm ni `node_modules` en `extraResources`: el standalone necesita un `vendor/` hoisted | Alto | [DT-035](deuda-tecnica.md) |
@@ -45,6 +48,24 @@
 ---
 
 ## Detalle
+
+### H-028 - El cliente TCP resuelve antes de que el servidor lea
+
+- **Qué esperábamos:** tras `POST print-kitchen` el servidor de prueba ya tendría los bytes.
+- **Qué pasó:** `createTcpTransport` resuelve al terminar de enviar (a propósito: esperar el FIN del peer daba timeouts espurios con impresoras reales). El test leía el buffer en ese instante y veía `[]`.
+- **Fix:** `capture-server.ts` resuelve `received()` cuando el cliente cierra la conexión.
+
+### H-027 - El DOM por CDP no detecta ilegibilidad
+
+- **Qué esperábamos:** que 21 comprobaciones por CDP bastaran para dar por buena la página `/admin/ajustes`.
+- **Qué pasó:** todas pasaron, pero la captura de pantalla mostraba título, etiquetas, texto de los campos y el botón "Imprimir prueba" en gris casi blanco sobre gris claro (Windows en modo oscuro, [DT-023](deuda-tecnica.md)).
+- **Por qué importa:** el DOM dice que el elemento existe y tiene el texto correcto; no dice si se ve. En cada verificación del `.exe`, mirar al menos una captura.
+
+### H-026 - El middleware es una lista de permitidos, no un default-deny
+
+- **Qué esperábamos:** que una ruta `/api/...` nueva exigiera sesión salvo que se declarara pública.
+- **Qué pasó:** `src/middleware.ts` solo protege los prefijos de `PROTECTED_PREFIXES` y los del `matcher`. `/api/settings/printer` respondía **200 sin sesión** hasta que se añadió a ambas listas (test en `src/middleware.test.ts`). Cualquiera en la LAN habría podido cambiar la IP de la impresora y disparar conexiones TCP desde la PC.
+- **Por qué importa:** la próxima ruta con prefijo nuevo repetirá el hueco en silencio. Ver [DT-049](deuda-tecnica.md).
 
 ### H-025 - `pg_dump` deja la sesión PGlite en read-only
 

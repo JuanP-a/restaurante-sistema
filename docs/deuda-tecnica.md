@@ -18,7 +18,8 @@
 | ID | Área | Deuda | Prioridad | Esfuerzo | Estado | Origen |
 |----|------|-------|-----------|----------|--------|--------|
 | DT-022 | Desktop | `/admin/backup` sin `force-dynamic`: se prerenderiza como cloud y no aparece en el `.exe` | Alta | S | Resuelta (2026-10-28, #46) | [H-015](hallazgos.md) |
-| DT-047 | Desktop | El `.exe` no tiene superficie de configuracion: `PRINTER_HOST`, `BUSINESS_*` y `WHATSAPP_*` solo entran por env y el `.exe` no lee `.env` | Alta | M | Abierta | Runbook Fase 4 |
+| DT-047 | Desktop | El `.exe` no tiene superficie de configuracion: `BUSINESS_*` y `WHATSAPP_*` solo entran por env y el `.exe` no lee `.env` (la impresora ya se configura en `/admin/ajustes`, 2026-11-03) | Media | M | Abierta (v2) | Runbook Fase 4 |
+| DT-049 | Seguridad | `src/middleware.ts` protege por lista de prefijos (default-allow): una ruta `/api/...` nueva queda sin sesion si se olvida añadirla | Alta | M | Abierta | [H-026](hallazgos.md) |
 | DT-048 | Desktop | ESC/POS sin probar contra una térmica física (solo contra un listener TCP local; no hay impresora conectada) | Alta | S | Abierta | Plan impresora |
 | DT-023 | Frontend | Dark-mode del SO vuelve ilegible la UI y los tickets (`bg-white` + `--foreground` claro) | Alta | S | Abierta | [H-016](hallazgos.md) |
 | DT-024 | WhatsApp | El bot no hidrata el producto: placeholder `name:"x"`/`basePrice:"0"` | Alta | M | Abierta | [H-017](hallazgos.md) |
@@ -84,7 +85,15 @@
 - **Qué:** el server hijo recibe de `electron/main.ts` solo `PORT`, `DB_*`, `SESSION_*`, `BACKUP_DIR`, `DESKTOP_LAN_URL` y `NODE_PATH`. `PRINTER_HOST`/`PRINTER_PORT`, `BUSINESS_*`/`NEXT_PUBLIC_BUSINESS_*` y `WHATSAPP_*` **no** se pasan, y el `.exe` no lee `.env.local`.
 - **Por qué importa:** en la app instalada la impresión térmica server-side es inalcanzable (el endpoint responde `printed: "browser"` y hay que imprimir desde el diálogo del navegador, sin ESC/POS silencioso), los tickets salen con el nombre por defecto y la Fase 5 (túnel WhatsApp) no tendría credenciales. El wizard de Fase 4 solo cubre la contraseña.
 - **Fix propuesto:** extender `config.json` con `printerHost`/`printerPort`/`businessName` (+ `whatsapp*` en Fase 5) y una pantalla `/admin/ajustes` que los edite; `main.ts` los inyecta al hijo. Alternativa mínima: leer un `config.json` con esos campos y exponer solo edición de impresora.
-- **Criterio de cierre:** en el `.exe` se configura la IP de la térmica desde la UI y `print-kitchen` responde `printed: "escpos"`.
+- **Criterio de cierre:** en el `.exe` se configura la IP de la térmica desde la UI y `print-kitchen` responde `printed: "server"` (el valor real del código; este criterio decía `"escpos"`).
+- **Estado (2026-11-03):** **porción impresora resuelta.** No siguió el fix propuesto (`config.json` + env desde `electron/main.ts`): la config vive en la tabla `settings` (claves `printer_host`/`printer_port`), se lee por request y se edita en `/admin/ajustes`, sin reiniciar y sin tocar `electron/`. Spec [`2026-11-03-desktop-v1-01-config-impresora-design.md`](superpowers/specs/2026-11-03-desktop-v1-01-config-impresora-design.md), verificación en el [runbook](runbooks/2026-11-03-desktop-v1-impresora.md) (21/21 contra un listener TCP; sin impresora física, ver DT-048). **Sigue abierta** por `BUSINESS_*` y `WHATSAPP_*` (v2, [ADR 0005](decisions/0005-alcance-v1-desktop.md)).
+
+### DT-049 - El middleware es default-allow
+
+- **Qué:** `src/middleware.ts` exige sesión solo para los prefijos de `PROTECTED_PREFIXES` y del `matcher`. Cualquier ruta fuera de esas listas es pública.
+- **Por qué importa:** `/api/settings/printer` (que abre TCP a un host elegido por quien llama) estuvo abierta hasta que se añadió a mano ([H-026](hallazgos.md)). La próxima ruta con prefijo nuevo repetirá el hueco sin que nada avise.
+- **Fix propuesto:** invertir a default-deny: todo `/api/*` y `/admin/*` exige sesión salvo una lista corta de públicas (`/api/admin/login`, `/api/setup`, `/api/webhooks/whatsapp`, `/api/health`; `/api/health` lo usa Electron sin sesión). Un test que recorra los `route.ts` y falle si alguno no está protegido ni declarado público.
+- **Criterio de cierre:** añadir una ruta `/api/<nuevo>` sin tocar el middleware la deja protegida.
 
 ### DT-048 - ESC/POS sin probar contra una térmica física
 
@@ -100,6 +109,7 @@
 - **Por qué importa:** con el SO en modo oscuro el texto de tarjetas/encabezados queda casi blanco sobre blanco (invisible) y el ticket puede salir ilegible.
 - **Fix propuesto:** quitar el bloque `@media (prefers-color-scheme: dark)` (app light-only) **o** fijar un `color` real; y en `@media print` forzar `color:#000; background:#fff`.
 - **Criterio de cierre:** con el SO en oscuro, UI y tickets legibles.
+- **Decisión (2026-11-03):** el usuario mantiene el comportamiento actual: la app sigue el tema del SO. El [runbook de la impresora](runbooks/2026-11-03-desktop-v1-impresora.md) lo confirmó como riesgo real: con Windows en modo oscuro, `/admin/ajustes` (título, etiquetas, campos y el botón "Imprimir prueba") sale casi ilegible y la mitad inferior de la ventana es negra. Queda abierta; si el equipo del cliente usa modo oscuro, el arreglo mínimo es `color-scheme: light` en `globals.css` ([ADR 0005](decisions/0005-alcance-v1-desktop.md)).
 
 ### DT-024 — El bot no hidrata el producto
 
