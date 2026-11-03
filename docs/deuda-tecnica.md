@@ -22,7 +22,7 @@
 | DT-049 | Seguridad | `src/middleware.ts` protege por lista de prefijos (default-allow): una ruta `/api/...` nueva queda sin sesion si se olvida añadirla | Alta | M | Abierta | [H-026](hallazgos.md) |
 | DT-050 | Desktop | El `.exe` sin firmar lo bloquea Smart App Control (y cualquier politica de Control de aplicaciones): no arranca, sin opcion de "ejecutar de todos modos" | Alta | M | Abierta | [H-030](hallazgos.md) |
 | DT-048 | Desktop | ESC/POS sin probar contra una térmica física (solo contra un listener TCP local; no hay impresora conectada) | Alta | S | Abierta | Plan impresora |
-| DT-023 | Frontend | Dark-mode del SO vuelve ilegible la UI y los tickets (`bg-white` + `--foreground` claro) | Alta | S | Abierta | [H-016](hallazgos.md) |
+| DT-023 | Frontend | Dark-mode del SO vuelve ilegible la UI y los tickets (`bg-white` + `--foreground` claro) | Alta | S | Resuelta (2026-11-03) | [H-016](hallazgos.md) |
 | DT-024 | WhatsApp | El bot no hidrata el producto: placeholder `name:"x"`/`basePrice:"0"` | Alta | M | Abierta | [H-017](hallazgos.md) |
 | DT-025 | Desktop | `runBackup` reporta éxito sin escribir en ningún destino (falso "Backup creado") | Alta | S | Abierta | [H-018](hallazgos.md) |
 | DT-026 | Desktop | `verifyBackup`: 2ª instancia PGlite por llamada; sin single-flight ni timeout/tamaño | Media | S | Abierta | [H-019](hallazgos.md) |
@@ -119,6 +119,8 @@
 - **Fix propuesto:** quitar el bloque `@media (prefers-color-scheme: dark)` (app light-only) **o** fijar un `color` real; y en `@media print` forzar `color:#000; background:#fff`.
 - **Criterio de cierre:** con el SO en oscuro, UI y tickets legibles.
 - **Decisión (2026-11-03):** el usuario mantiene el comportamiento actual: la app sigue el tema del SO. El [runbook de la impresora](runbooks/2026-11-03-desktop-v1-impresora.md) lo confirmó como riesgo real: con Windows en modo oscuro, `/admin/ajustes` (título, etiquetas, campos y el botón "Imprimir prueba") sale casi ilegible y la mitad inferior de la ventana es negra. Queda abierta; si el equipo del cliente usa modo oscuro, el arreglo mínimo es `color-scheme: light` en `globals.css` ([ADR 0005](decisions/0005-alcance-v1-desktop.md)).
+
+- **Estado (2026-11-03):** **resuelta.** El usuario cambió de decisión tras ver las capturas y pidió el tema claro. Se aplicó el fix mínimo: `color-scheme: light` y se quitó el bloque `prefers-color-scheme: dark` de `globals.css`, con un test que lo protege (`src/app/globals.test.ts`). Verificado en el `.exe` real con Windows en modo oscuro: contraste mínimo **4,63:1** en `/admin/*` y `/login` (antes ≈1,1:1) y sigue claro con `prefers-color-scheme: dark` emulado. Sin tocar los 18 archivos con colores fijos: un modo oscuro real sería trabajo nuevo (migrar a tokens). **Sin cubrir:** las páginas `/print/[id]/*` (los tickets por navegador) no se comprobaron visualmente; heredan el fondo blanco y el texto `#171717`.
 
 ### DT-024 — El bot no hidrata el producto
 

@@ -30,7 +30,7 @@
 | H-019 | 2026-10-11 | `verifyBackup` crea una 2ª instancia PGlite (churn) coexistiendo con la long-lived | Medio | [DT-026](deuda-tecnica.md), [H-001](#h-001--pglite-single-connection-y-concurrencia) |
 | H-018 | 2026-10-11 | `runBackup` devuelve `ok` aunque no escriba en ningún destino | Alto | [DT-025](deuda-tecnica.md) |
 | H-017 | 2026-10-11 | El bot fabrica `name:"x"`/`basePrice:"0"`; la confirmación sale `• 1 x` | Alto | [DT-024](deuda-tecnica.md) |
-| H-016 | 2026-10-11 | Dark-mode del SO vuelve ilegible la UI (`bg-white` + `--foreground` heredado) y los tickets | Alto | [DT-023](deuda-tecnica.md) |
+| H-016 | 2026-10-11 | (Resuelta, DT-023) Dark-mode del SO vuelve ilegible la UI (`bg-white` + `--foreground` heredado) y los tickets | Alto | [DT-023](deuda-tecnica.md) |
 | H-015 | 2026-10-11 | `/admin/backup` se prerenderiza como variante cloud (falta `force-dynamic`) | Alto | [DT-022](deuda-tecnica.md) |
 | H-014 | 2026-10-08 | `pglite-tools@0.4.8` fija el peer `@electric-sql/pglite@0.5.8` **exacto** | Medio | [DT-019](deuda-tecnica.md) |
 | H-013 | 2026-10-08 | `drivelist` es addon nativo: su ausencia no debe romper el backup | Medio | [DT-018](deuda-tecnica.md) |
