@@ -17,8 +17,3 @@ nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
   perMachine: false
-# drivelist es un addon nativo que electron-builder intenta recompilar (necesita
-# MSVC + Python, que no estan en el runner). El adapter lo importa lazy y degrada
-# a [] sin el binding, asi que el .exe empaqueta igual y solo se pierde la
-# deteccion de USB en backups (DT-018).
-npmRebuild: false
