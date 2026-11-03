@@ -167,6 +167,6 @@ Un PR contra `main`, squash, que cierre la porción impresora de DT-047. Integra
 
 ## Riesgos
 
-- **Impresora real sin probar:** la verificación usa un listener TCP. Probar la térmica física en el local (IP fija, CP850) antes de entregar; anotarlo en el runbook.
+- **Impresora real sin probar (aplazado, [DT-048](../../deuda-tecnica.md)):** no hay impresora conectada (2026-11-03). La verificación usa un listener TCP. Probar la térmica física (IP fija, CP850) antes de entregar la v1; anotarlo en el runbook.
 - **Auto-print:** la pregunta abierta de la spec sigue sin resolver; este plan **no** lo incluye.
 - **Dato corrupto en `settings`:** `getPrinterSettings` devuelve `null` y la config cae al env en vez de romper la impresión; cubierto en Tasks 3 y 4.

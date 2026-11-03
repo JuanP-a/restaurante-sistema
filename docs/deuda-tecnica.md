@@ -19,6 +19,7 @@
 |----|------|-------|-----------|----------|--------|--------|
 | DT-022 | Desktop | `/admin/backup` sin `force-dynamic`: se prerenderiza como cloud y no aparece en el `.exe` | Alta | S | Resuelta (2026-10-28, #46) | [H-015](hallazgos.md) |
 | DT-047 | Desktop | El `.exe` no tiene superficie de configuracion: `PRINTER_HOST`, `BUSINESS_*` y `WHATSAPP_*` solo entran por env y el `.exe` no lee `.env` | Alta | M | Abierta | Runbook Fase 4 |
+| DT-048 | Desktop | ESC/POS sin probar contra una térmica física (solo contra un listener TCP local; no hay impresora conectada) | Alta | S | Abierta | Plan impresora |
 | DT-023 | Frontend | Dark-mode del SO vuelve ilegible la UI y los tickets (`bg-white` + `--foreground` claro) | Alta | S | Abierta | [H-016](hallazgos.md) |
 | DT-024 | WhatsApp | El bot no hidrata el producto: placeholder `name:"x"`/`basePrice:"0"` | Alta | M | Abierta | [H-017](hallazgos.md) |
 | DT-025 | Desktop | `runBackup` reporta éxito sin escribir en ningún destino (falso "Backup creado") | Alta | S | Abierta | [H-018](hallazgos.md) |
@@ -84,6 +85,14 @@
 - **Por qué importa:** en la app instalada la impresión térmica server-side es inalcanzable (el endpoint responde `printed: "browser"` y hay que imprimir desde el diálogo del navegador, sin ESC/POS silencioso), los tickets salen con el nombre por defecto y la Fase 5 (túnel WhatsApp) no tendría credenciales. El wizard de Fase 4 solo cubre la contraseña.
 - **Fix propuesto:** extender `config.json` con `printerHost`/`printerPort`/`businessName` (+ `whatsapp*` en Fase 5) y una pantalla `/admin/ajustes` que los edite; `main.ts` los inyecta al hijo. Alternativa mínima: leer un `config.json` con esos campos y exponer solo edición de impresora.
 - **Criterio de cierre:** en el `.exe` se configura la IP de la térmica desde la UI y `print-kitchen` responde `printed: "escpos"`.
+
+### DT-048 - ESC/POS sin probar contra una térmica física
+
+- **Qué:** la config de impresora del `.exe` ([spec](superpowers/specs/2026-11-03-desktop-v1-01-config-impresora-design.md), [plan](superpowers/plans/2026-11-03-desktop-v1-01-config-impresora.md)) se verifica solo contra un listener TCP local que captura bytes. No hay impresora conectada (2026-11-03), así que ni el renderer ESC/POS ni el codepage CP850 se han visto impresos en papel.
+- **Por qué importa:** un listener confirma que salen los bytes, no que la impresora los interprete bien: ancho de 48 columnas, acentos (CP850), corte, y que la IP fija responda en el puerto 9100.
+- **Fix propuesto:** con la impresora Ethernet del cliente en red e IP fija: **Imprimir prueba** desde `/admin/ajustes` (la línea `áéíóú ñ ¿¡` revela un codepage equivocado), una comanda y una cuenta reales, y cerrar la tapa/cortar para comprobar el corte. Registrar resultados en el runbook de la impresora.
+- **Criterio de cierre:** comanda y cuenta impresas correctamente (acentos, columnas, corte) en la térmica del cliente.
+- **Bloquea:** la entrega de la v1 al cliente ([ADR 0005](decisions/0005-alcance-v1-desktop.md)), no el merge del código.
 
 ### DT-023 - Dark-mode rompe contraste de UI y tickets
 
