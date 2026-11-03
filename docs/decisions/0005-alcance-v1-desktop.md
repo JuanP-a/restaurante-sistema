@@ -50,3 +50,8 @@ Todo lo demás pasa a **v2**. No se borra: sigue registrado donde ya estaba.
 ## Actualización (2026-11-03): DT-023 se mantiene
 
 La verificación de la config de impresora ([runbook](../runbooks/2026-11-03-desktop-v1-impresora.md)) mostró que con Windows en modo oscuro `/admin/ajustes` sale casi ilegible (título, etiquetas, campos y el botón "Imprimir prueba" en gris casi blanco sobre gris claro). El usuario decidió **mantener el comportamiento actual: la app sigue el tema del sistema operativo**. DT-023 queda abierta. El riesgo es el descrito arriba y ahora está comprobado: si el equipo del cliente usa modo oscuro, el operador no podrá leer el formulario de la impresora. Arreglo mínimo si hace falta: `color-scheme: light` en `globals.css`.
+
+## Actualización (2026-11-03): DT-018 cambia de enfoque; Smart App Control amenaza la entrega
+
+- **DT-018:** el criterio original ("bindings de `drivelist` en el `.exe`") era inalcanzable: `drivelist` 12.x no publica binarios ([H-029](../hallazgos.md)). Nuevo criterio: **detección de USB sin módulo nativo** (PowerShell/CIM). Implementado; falta la verificación con una memoria real, que hace el usuario ([runbook](../runbooks/2026-11-03-desktop-v1-usb.md)).
+- **Riesgo nuevo para la v1:** Smart App Control bloqueó el `.exe` sin firmar en esta PC ([DT-050](../deuda-tecnica.md), [H-030](../hallazgos.md)). Si el equipo del cliente lo tiene activo, no podrá instalar ni abrir la app. Es una decisión pendiente del usuario (firmar el binario u otra vía) y **puede bloquear también la verificación de hardware**. Se deja fuera de la v1 solo si el cliente no usa Smart App Control.

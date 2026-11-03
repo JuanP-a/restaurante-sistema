@@ -20,6 +20,7 @@
 | DT-022 | Desktop | `/admin/backup` sin `force-dynamic`: se prerenderiza como cloud y no aparece en el `.exe` | Alta | S | Resuelta (2026-10-28, #46) | [H-015](hallazgos.md) |
 | DT-047 | Desktop | El `.exe` no tiene superficie de configuracion: `BUSINESS_*` y `WHATSAPP_*` solo entran por env y el `.exe` no lee `.env` (la impresora ya se configura en `/admin/ajustes`, 2026-11-03) | Media | M | Abierta (v2) | Runbook Fase 4 |
 | DT-049 | Seguridad | `src/middleware.ts` protege por lista de prefijos (default-allow): una ruta `/api/...` nueva queda sin sesion si se olvida añadirla | Alta | M | Abierta | [H-026](hallazgos.md) |
+| DT-050 | Desktop | El `.exe` sin firmar lo bloquea Smart App Control (y cualquier politica de Control de aplicaciones): no arranca, sin opcion de "ejecutar de todos modos" | Alta | M | Abierta | [H-030](hallazgos.md) |
 | DT-048 | Desktop | ESC/POS sin probar contra una térmica física (solo contra un listener TCP local; no hay impresora conectada) | Alta | S | Abierta | Plan impresora |
 | DT-023 | Frontend | Dark-mode del SO vuelve ilegible la UI y los tickets (`bg-white` + `--foreground` claro) | Alta | S | Abierta | [H-016](hallazgos.md) |
 | DT-024 | WhatsApp | El bot no hidrata el producto: placeholder `name:"x"`/`basePrice:"0"` | Alta | M | Abierta | [H-017](hallazgos.md) |
@@ -57,7 +58,7 @@
 | DT-015 | Desktop | Fases desktop sin plan escrito; Fases 3 y 4 ya tienen plan, falta 5 (túnel) | Media | M | En progreso | Plan maestro |
 | DT-016 | Testing | Anti-doble-impresión en `/print/...` sin test automático (solo typecheck) | Media | S | Abierta | Fase 2 |
 | DT-017 | API | `id` malformado (no-UUID) en rutas de pedido → 500 en vez de 404 | Baja | S | Abierta | Fase 2 |
-| DT-018 | Deps | `drivelist` (addon nativo) sin bindings: pnpm ignora su build script | Media | S | Abierta | Fase 3 backup |
+| DT-018 | Deps | `drivelist` (addon nativo) sin bindings: sin binarios upstream y sin toolchain para compilarlo. Reemplazado por PowerShell/CIM (2026-11-03); falta verificar con una memoria USB real | Media | S | En progreso | Fase 3 backup |
 | DT-019 | Deps | `pglite-tools` fija el peer de PGlite en versión exacta: subir ambos en lockstep | Media | S | Abierta | [H-014](hallazgos.md) |
 | DT-020 | Desktop | El swap en vivo de la DB (restaurar reemplazando el `dataDir`) no está implementado | Media | M | Abierta | Fase 3 backup |
 | DT-021 | Desktop | El backup no está serializado contra las queries de la app (PGlite single-connection) | Media | S | Abierta | [H-001](hallazgos.md), [H-019](hallazgos.md) |
@@ -87,6 +88,13 @@
 - **Fix propuesto:** extender `config.json` con `printerHost`/`printerPort`/`businessName` (+ `whatsapp*` en Fase 5) y una pantalla `/admin/ajustes` que los edite; `main.ts` los inyecta al hijo. Alternativa mínima: leer un `config.json` con esos campos y exponer solo edición de impresora.
 - **Criterio de cierre:** en el `.exe` se configura la IP de la térmica desde la UI y `print-kitchen` responde `printed: "server"` (el valor real del código; este criterio decía `"escpos"`).
 - **Estado (2026-11-03):** **porción impresora resuelta.** No siguió el fix propuesto (`config.json` + env desde `electron/main.ts`): la config vive en la tabla `settings` (claves `printer_host`/`printer_port`), se lee por request y se edita en `/admin/ajustes`, sin reiniciar y sin tocar `electron/`. Spec [`2026-11-03-desktop-v1-01-config-impresora-design.md`](superpowers/specs/2026-11-03-desktop-v1-01-config-impresora-design.md), verificación en el [runbook](runbooks/2026-11-03-desktop-v1-impresora.md) (21/21 contra un listener TCP; sin impresora física, ver DT-048). **Sigue abierta** por `BUSINESS_*` y `WHATSAPP_*` (v2, [ADR 0005](decisions/0005-alcance-v1-desktop.md)).
+
+### DT-050 - Smart App Control bloquea el `.exe` sin firmar
+
+- **Qué:** con Smart App Control activo, Windows se niega a ejecutar `Sistema de Pedidos.exe` (sin firma Authenticode): desde bash (código 126) y desde `Start-Process` ("Una directiva de Control de aplicaciones bloqueó este archivo"). Evento 3077 de Code Integrity; `Get-AuthenticodeSignature` → `NotSigned`; `VerifiedAndReputablePolicyState = 1`. Comprobado el 2026-11-03 sobre un build recién generado ([H-030](hallazgos.md)).
+- **Por qué importa:** [DT-014](deuda-tecnica.md) aceptó no firmar pensando en el aviso de SmartScreen ("ejecutar de todos modos"). Smart App Control no ofrece esa salida: el binario simplemente no corre. Un cliente con Windows 11 y SAC activo (por defecto en instalaciones limpias) no podría instalar ni abrir la app, y **la verificación de hardware del propio desarrollador también puede quedar bloqueada**.
+- **Opciones (decisión del usuario):** (a) firmar con un certificado de firma de código de una CA de confianza (un certificado autofirmado **no** satisface SAC); (b) desactivar Smart App Control en la PC de destino (no se puede reactivar sin reinstalar Windows; no recomendable en el equipo del cliente); (c) un PC del cliente con SAC en "evaluación" o desactivado. Para pruebas locales: `pnpm build` + `pnpm start`.
+- **Criterio de cierre:** el instalador y la app arrancan en un Windows 11 limpio con Smart App Control activo.
 
 ### DT-049 - El middleware es default-allow
 
@@ -340,6 +348,8 @@
 - **Criterio de cierre:** `require("drivelist")` carga en la plataforma de desarrollo y el binario viaja en el build de escritorio.
 - **Estado (2026-10-28, Fase 4):** sigue abierta. En Windows sin Visual Studio Build Tools + Python, `node-gyp` falla al compilar, y `electron-builder` intenta recompilarlo (`node-gyp failed to rebuild`) → se empaquetó con `npmRebuild: false`. Consecuencia: en el `.exe` el adapter degrada a `[]`, así que los backups funcionan a carpeta pero no detectan USB.
 
+- **Estado (2026-11-03):** **implementada en código, pendiente de verificación con hardware (usuario).** El fix propuesto (`onlyBuiltDependencies`) nunca pudo funcionar: `drivelist` 12.x no publica binarios (v12.0.0/12.0.1/12.0.2 tienen 0 assets; `prebuild-install` recibe 404) y compilarlo exige MSVC + Python. Se quitó la dependencia y la detección de USB usa PowerShell/CIM (`src/infra/backup/windows-drives.ts`, ≈1 s por listado). Ya no queda ningún addon nativo, así que se quitó también `npmRebuild: false`. Spec [`2026-11-03-desktop-v1-02-usb-sin-drivelist-design.md`](superpowers/specs/2026-11-03-desktop-v1-02-usb-sin-drivelist-design.md), [runbook](runbooks/2026-11-03-desktop-v1-usb.md). **Criterio de cierre:** en el `.exe`, una memoria USB conectada aparece como destino y recibe el backup (los 7 pasos del runbook); entonces pasa a `Resuelta`.
+
 ### DT-019 — `pglite-tools` fija el peer de PGlite en versión exacta
 
 - **Qué:** `@electric-sql/pglite-tools@0.4.8` declara `peerDependencies: { "@electric-sql/pglite": "0.5.8" }` (pin exacto, no rango).
@@ -368,4 +378,4 @@ Compromisos conscientes que no se pagan ahora:
 - **DT-010:** dos PRs de Dependabot/semana es tolerable; se unifica si molesta.
 - **DT-012:** los workarounds de macOS son del entorno del dev, no del producto; se documentan en `AGENTS.md` y se vive con ellos.
 - **DT-013:** impresión USB fuera de alcance (MVP usa térmica de red ESC/POS).
-- **DT-014:** sin firma de código (1 cliente); se revisa al escalar.
+- **DT-014:** sin firma de código (1 cliente); se revisa al escalar. **Revisada 2026-11-03:** la premisa "solo SmartScreen" ya no vale; Smart App Control bloquea el binario por completo, ver [DT-050](deuda-tecnica.md).
