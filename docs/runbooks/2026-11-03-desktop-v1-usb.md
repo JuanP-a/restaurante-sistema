@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-11-03
 **Rama:** `feat/desktop-usb-sin-drivelist` (tareas 1-5 del [plan](../superpowers/plans/2026-11-03-desktop-v1-02-usb-sin-drivelist.md))
-**Resultado:** el código y la capa de servidor están verificados. **Falta la verificación con hardware (la hace el usuario) y no se pudo ejecutar el `.exe` empaquetado en esta PC** (ver "Bloqueo").
+**Resultado:** código, capa de servidor y `.exe` empaquetado verificados sin hardware (el `.exe` en una segunda pasada, tras desactivar el usuario Smart App Control en su PC; ver "Bloqueo" y "Verificación sobre el `.exe` real"). **Falta la verificación con hardware (la hace el usuario).**
 
 ## Qué se verificó (sin hardware)
 
@@ -20,7 +20,25 @@
 
 Coste: cada listado de destinos lanza un PowerShell (≈0,9-1,1 s medidos dentro del server). Abrir `/admin/backup` o crear/validar un backup tarda ~1 s más que antes.
 
+## Verificación sobre el `.exe` real (2026-11-03, con Smart App Control desactivado)
+
+Mismo `dist\win-unpacked\Sistema de Pedidos.exe`, datos aislados (`--user-data-dir`), ventana real por CDP y salida del proceso capturada. **8/8**:
+
+| Paso | Resultado | Evidencia |
+|---|---|---|
+| Wizard → `/admin/orders` | ✅ | |
+| `GET /api/backup` → 200 solo con `folder` | ✅ | **763 ms** en frío, **605 ms** la segunda (PowerShell se ejecutó) |
+| `/admin/backup` muestra "Carpeta sincronizada" y ningún `USB (` | ✅ | captura vista |
+| `POST /api/backup` escribe en la carpeta sin fallos y `restore` lo valida | ✅ | |
+| Log del proceso | ✅ | solo líneas de arranque de Next; sin `drivelist` ni avisos de PowerShell |
+
+La verificación de la impresora (21 comprobaciones del [runbook de la impresora](2026-11-03-desktop-v1-impresora.md)) se repitió sobre este mismo build, con ambas funciones juntas: **21/21**.
+
+Nota: `BACKUP_DIR` del `.exe` es `Documentos\restaurante-backups` de la cuenta real aunque se use un `--user-data-dir` aislado, así que la prueba escribió en esa carpeta (el archivo de prueba se borró). La captura confirma además el problema de [DT-023](../deuda-tecnica.md): con Windows en modo oscuro, títulos, nombres de archivo y botones de `/admin/backup` salen casi ilegibles.
+
 ## Bloqueo: Smart App Control impide ejecutar el `.exe` sin firmar
+
+> **Actualización:** el usuario desactivó Smart App Control en su PC y el `.exe` arrancó. El bloqueo sigue vigente para cualquier equipo con el ajuste activo ([DT-050](../deuda-tecnica.md)).
 
 Al lanzar `dist\win-unpacked\Sistema de Pedidos.exe` Windows lo bloqueó: desde bash (código 126) y con `Start-Process` ("Una directiva de Control de aplicaciones bloqueó este archivo"). Evento 3077 de Code Integrity: el binario "no cumple los requisitos de nivel de firma Enterprise o viola la política"; `Get-AuthenticodeSignature` → `NotSigned`; `VerifiedAndReputablePolicyState = 1` (**Smart App Control activo**).
 
