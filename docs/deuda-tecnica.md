@@ -95,6 +95,7 @@
 - **Por qué importa:** [DT-014](deuda-tecnica.md) aceptó no firmar pensando en el aviso de SmartScreen ("ejecutar de todos modos"). Smart App Control no ofrece esa salida: el binario simplemente no corre. Un cliente con Windows 11 y SAC activo (por defecto en instalaciones limpias) no podría instalar ni abrir la app, y **la verificación de hardware del propio desarrollador también puede quedar bloqueada**.
 - **Opciones (decisión del usuario):** (a) firmar con un certificado de firma de código de una CA de confianza (un certificado autofirmado **no** satisface SAC); (b) desactivar Smart App Control en la PC de destino (no se puede reactivar sin reinstalar Windows; no recomendable en el equipo del cliente); (c) un PC del cliente con SAC en "evaluación" o desactivado. Para pruebas locales: `pnpm build` + `pnpm start`.
 - **Criterio de cierre:** el instalador y la app arrancan en un Windows 11 limpio con Smart App Control activo.
+- **Estado (2026-11-03):** el usuario **desactivó Smart App Control en su PC de desarrollo** para poder probar el `.exe`; el `.exe` arrancó y se verificó por CDP ([runbook USB](runbooks/2026-11-03-desktop-v1-usb.md), [runbook impresora](runbooks/2026-11-03-desktop-v1-impresora.md)). Eso **no** resuelve la deuda: sigue abierta para el PC del cliente. Pendiente: comprobar si el equipo del cliente lo tiene activo antes de instalar.
 
 ### DT-049 - El middleware es default-allow
 
