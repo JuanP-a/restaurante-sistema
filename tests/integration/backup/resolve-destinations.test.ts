@@ -2,7 +2,7 @@
 import { join } from "node:path";
 import { describe, expect, test } from "vitest";
 import { resolveDestinations } from "@/infra/backup/resolve-destinations";
-import type { DriveInfo } from "@/infra/backup/usb-destinations";
+import type { DriveInfo } from "@/core/backup/drives";
 
 describe("resolveDestinations", () => {
   test("siempre incluye la carpeta sincronizada", async () => {

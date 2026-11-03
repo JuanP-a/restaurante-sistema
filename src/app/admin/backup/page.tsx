@@ -1,7 +1,7 @@
 import { getEnv } from "@/env";
 import { getBackupSource } from "@/infra/db/client";
 import { resolveDestinations } from "@/infra/backup/resolve-destinations";
-import { listDrivesFromDrivelist } from "@/infra/backup/usb-destinations";
+import { listDrives } from "@/infra/backup/windows-drives";
 import { PageContainer } from "@/ui/PageContainer";
 import { PageHeading } from "@/ui/PageHeading";
 import { BackupActions, type BackupListing } from "./backup-actions";
@@ -24,7 +24,7 @@ export default async function BackupPage() {
 
   const destinations = await resolveDestinations({
     backupDir: getEnv().BACKUP_DIR,
-    listDrives: listDrivesFromDrivelist,
+    listDrives,
   });
 
   const listings: BackupListing[] = [];

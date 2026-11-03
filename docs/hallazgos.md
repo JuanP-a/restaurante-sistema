@@ -16,6 +16,8 @@
 
 | ID | Fecha | Hallazgo | Impacto | Documentado en |
 |----|-------|----------|---------|----------------|
+| H-030 | 2026-11-03 | Smart App Control bloquea el `.exe` sin firmar (evento 3077): la app no arranca ni para quien la desarrolla; antes arrancaban los builds de la misma carpeta | Alto | [DT-050](deuda-tecnica.md), [Runbook USB](../runbooks/2026-11-03-desktop-v1-usb.md) |
+| H-029 | 2026-11-03 | `drivelist` 12.x no publica binarios (0 assets en sus releases): `pnpm approve-builds` no lo arregla; solo queda compilar con MSVC + Python | Alto | [DT-018](deuda-tecnica.md) |
 | H-028 | 2026-11-03 | El cliente TCP de impresión resuelve al terminar de enviar, antes de que el servidor lea: un test que lee de inmediato ve un buffer vacío | Bajo | `tests/integration/printer/capture-server.ts` |
 | H-027 | 2026-11-03 | Verificar el `.exe` por DOM/CDP no detecta texto ilegible: la página nueva pasó 21/21 y en la captura era casi invisible (modo oscuro) | Medio | [Runbook impresora](../runbooks/2026-11-03-desktop-v1-impresora.md), [DT-023](deuda-tecnica.md) |
 | H-026 | 2026-11-03 | El middleware protege por **lista de prefijos**: una ruta `/api/...` nueva queda abierta si se olvida añadirla | Alto | [DT-049](deuda-tecnica.md) |
@@ -48,6 +50,18 @@
 ---
 
 ## Detalle
+
+### H-030 - Smart App Control bloquea el `.exe` sin firmar
+
+- **Qué esperábamos:** que el `.exe` empaquetado arrancara como los de las verificaciones anteriores (el mismo día) y que la falta de firma fuera, como mucho, un aviso de SmartScreen ([DT-014](deuda-tecnica.md)).
+- **Qué pasó:** al lanzar el build recién generado, Windows lo bloqueó (bash: código 126; `Start-Process`: "Una directiva de Control de aplicaciones bloqueó este archivo"). Code Integrity registró el evento 3077; el binario es `NotSigned` y Smart App Control está activo. No hay "ejecutar de todos modos".
+- **Por qué importa:** un cliente con SAC activo no podría ejecutar la app, y la verificación de hardware del desarrollador puede quedar bloqueada. Ver [DT-050](deuda-tecnica.md). No se desactivó ni se esquivó la protección; la capa de servidor se verificó con el bundle standalone bajo `node`.
+
+### H-029 - `drivelist` 12.x no publica binarios
+
+- **Qué esperábamos:** que permitir el build script (`pnpm.onlyBuiltDependencies`) bastara para tener el binding, como proponía [DT-018](deuda-tecnica.md).
+- **Qué pasó:** `prebuild-install` pide `…/releases/download/v12.0.2/drivelist-v12.0.2-napi-v8-win32-x64.tar.gz` y recibe 404: los releases v12.0.0, v12.0.1 y v12.0.2 tienen **0 assets** (`gh api repos/balena-io-modules/drivelist/releases`). Solo queda `node-gyp rebuild` (MSVC + Python).
+- **Fix:** se quitó `drivelist` y la detección de USB usa PowerShell/CIM. Tropiezo del camino: `prebuild-install` suelto no conoce la versión N-API (pide `napi-v137`); hay que pasarle `--target 8`.
 
 ### H-028 - El cliente TCP resuelve antes de que el servidor lea
 
@@ -157,6 +171,7 @@
 - **Qué pasó:** su build script (`prebuild-install`) es ignorado por pnpm 10 y, sin bindings, el import falla.
 - **Por qué importa:** la detección de USB de los backups depende de él, pero el backup no debe caerse por su ausencia.
 - **Fix:** import **lazy** en `listDrivesFromDrivelist`, que degrada a `[]` y loguea un warning. Ver [DT-018](deuda-tecnica.md).
+- **Actualización (2026-11-03):** `drivelist` se quitó ([H-029](#h-029---drivelist-12x-no-publica-binarios)). El principio sigue vigente: el listado de USB degrada a `[]` y avisa si PowerShell falla, sin romper el backup a carpeta.
 
 ### H-012 — `pgDump` vacía el `search_path` y cualifica `public.*`
 

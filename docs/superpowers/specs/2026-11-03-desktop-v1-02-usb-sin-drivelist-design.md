@@ -1,7 +1,7 @@
 # Diseño — Desktop v1: detección de USB en el `.exe` sin `drivelist`
 
 - **Fecha:** 2026-11-03
-- **Estado:** Borrador — pendiente de aprobación del usuario
+- **Estado:** Implementada (2026-11-03), pendiente de verificación con hardware — ver [runbook](../../runbooks/2026-11-03-desktop-v1-usb.md)
 - **Fase:** v1 de escritorio ([ADR 0005](../../decisions/0005-alcance-v1-desktop.md)), cierra [DT-018](../../deuda-tecnica.md)
 
 ## Contexto
