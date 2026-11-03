@@ -14,6 +14,7 @@ const NAV_LINKS = [
   { href: "/admin/delivery-zones", label: "Zonas" },
   { href: "/admin/backup", label: "Backups" },
   { href: "/admin/conectar", label: "Conectar" },
+  { href: "/admin/ajustes", label: "Ajustes" },
 ] as const;
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
@@ -28,7 +29,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         Saltar al contenido
       </a>
       <header className="border-b bg-white">
-        {/* Una sola fila con scroll horizontal: en celular 8 enlaces no caben, y
+        {/* Una sola fila con scroll horizontal: en celular 9 enlaces no caben, y
             Pedidos/Nuevo (los de uso constante) van primero, siempre a la vista. */}
         <nav
           aria-label="Navegación principal"
