@@ -9,6 +9,7 @@ const PROTECTED_PREFIXES = [
   "/api/menu",
   "/api/delivery-zones",
   "/api/backup",
+  "/api/settings",
   "/api/events",
 ];
 // El middleware no puede leer PGlite (corre antes del server Node), así que el
@@ -51,6 +52,7 @@ export const config = {
     "/api/menu/:path*",
     "/api/delivery-zones/:path*",
     "/api/backup/:path*",
+    "/api/settings/:path*",
     "/api/events",
   ],
   runtime: "nodejs",

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getOrder } from "@/infra/db/order-repository";
 import { getEnv } from "@/env";
-import { resolveTransport } from "@/infra/printer/index";
+import { loadPrinterConfig, resolveTransport } from "@/infra/printer/index";
 import { printOrder } from "@/infra/printer/print-service";
 
 export async function POST(
@@ -16,7 +16,7 @@ export async function POST(
       { status: 404 },
     );
   }
-  const outcome = await printOrder(data, "bill", resolveTransport(getEnv()));
+  const outcome = await printOrder(data, "bill", resolveTransport(await loadPrinterConfig(getEnv())));
   if (outcome.printed === "failed") {
     return NextResponse.json(
       { ok: false, error: { message: "No se pudo imprimir la cuenta" } },

@@ -1,7 +1,7 @@
 # Diseño — Desktop v1: configurar la impresora desde el `.exe`
 
 - **Fecha:** 2026-11-03
-- **Estado:** Borrador — pendiente de aprobación del usuario
+- **Estado:** Implementada (2026-11-03) — ver [runbook](../../runbooks/2026-11-03-desktop-v1-impresora.md)
 - **Fase:** v1 de escritorio ([ADR 0005](../../decisions/0005-alcance-v1-desktop.md)), porción impresora de [DT-047](../../deuda-tecnica.md)
 
 ## Contexto

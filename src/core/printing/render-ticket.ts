@@ -48,6 +48,22 @@ function renderItems(items: TicketItem[], withPrices: boolean): number[] {
   return out;
 }
 
+// La línea de acentos permite al operador comprobar que la impresora usa CP850.
+export function renderTestTicket(now: Date): Uint8Array {
+  return Uint8Array.from([
+    ...init(),
+    ...selectCp850(),
+    ...align("center"),
+    ...bold(true),
+    ...text("PRUEBA DE IMPRESIÓN"),
+    ...bold(false),
+    ...text(formatDateTime(now)),
+    ...text("áéíóú ñ ¿¡"),
+    ...feed(3),
+    ...cut(),
+  ]);
+}
+
 export function renderKitchenTicket(data: KitchenTicketData): Uint8Array {
   const out: number[] = [
     ...init(),
