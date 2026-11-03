@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { selectUsbMounts, type DriveInfo } from "./usb-destinations";
+import { selectUsbMounts, type DriveInfo } from "./drives";
 
 function drive(overrides: Partial<DriveInfo>): DriveInfo {
   return {

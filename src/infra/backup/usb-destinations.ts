@@ -1,15 +1,4 @@
-export type DriveInfo = {
-  isRemovable: boolean;
-  isUSB: boolean | null;
-  isReadOnly: boolean;
-  mountpoints: { path: string }[];
-};
-
-export function selectUsbMounts(drives: DriveInfo[]): string[] {
-  return drives
-    .filter((d) => (d.isRemovable || d.isUSB === true) && !d.isReadOnly)
-    .flatMap((d) => d.mountpoints.map((m) => m.path));
-}
+import type { DriveInfo } from "@/core/backup/drives";
 
 // drivelist es un addon nativo; si no está disponible (CI, build sin toolchain)
 // degradamos a "sin USB" en vez de romper el backup — la carpeta sincronizada

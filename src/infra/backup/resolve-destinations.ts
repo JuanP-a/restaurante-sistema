@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { createFolderDestination } from "./folder-destination";
-import { selectUsbMounts, type DriveInfo } from "./usb-destinations";
+import { selectUsbMounts, type DriveInfo } from "@/core/backup/drives";
 import type { BackupDestination } from "./port";
 
 export async function resolveDestinations(input: {
