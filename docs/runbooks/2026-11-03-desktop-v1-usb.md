@@ -58,7 +58,7 @@ Con el `.exe` instalado y **una memoria USB**:
 - [ ] Disco duro externo USB: aparece (caso `DriveType=3`).
 - [ ] Retirarla y recargar: desaparece; crear backup sigue funcionando solo a carpeta.
 
-Si el `.exe` no arranca en la PC de verificación por el bloqueo de arriba, el mismo flujo se puede comprobar con `pnpm build` + `pnpm start` (requiere `.env.local` con `DB_DRIVER=pglite`).
+Si el `.exe` no arranca en la PC de verificación por el bloqueo de arriba, el mismo flujo se puede comprobar ejecutando el servidor standalone sin Electron (la vía que sí se verificó): ver la sección 0 del [runbook de verificación de hardware](2026-11-03-desktop-v1-verificacion-hardware.md). `pnpm start` no se ha probado con `output: standalone`.
 
 ## Cómo reproducir los pasos 6-9
 
