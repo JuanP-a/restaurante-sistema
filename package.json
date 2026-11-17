@@ -28,7 +28,7 @@
     "@electric-sql/pglite-tools": "^0.4.13",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.4",
-    "next": "16.4.3",
+    "next": "16.4.5",
     "pg": "^8.23.1",
     "qrcode": "^1.5.4",
     "react": "19.3.1",
